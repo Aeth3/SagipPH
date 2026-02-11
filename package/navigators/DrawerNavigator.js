@@ -2,8 +2,13 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { View } from "react-native";
 import { drawerRoutes } from "../routes/drawerRoutes";
 import CustomDrawer from "../components/ui/CustomDrawer";
+<<<<<<< ours
 import { COLORS } from "@src/legacyApp";
 import { LegacyButton } from "@src/legacyApp";
+=======
+import { COLORS } from "package/src/legacyApp";
+import { LegacyButton } from "package/src/legacyApp";
+>>>>>>> theirs
 import { useActionHandlers } from "../global/actionHandlers";
 import { useAuth } from "../src/presentation/hooks/useAuth";
 

@@ -10,11 +10,19 @@ import {
 } from "react-native";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faMagnifyingGlass, faSliders } from '@fortawesome/free-solid-svg-icons';
+<<<<<<< ours
 import { GlobalStyleSheet } from "@src/legacyApp";
 import { COLORS, FONTS, IMAGES, SIZES } from "@src/legacyApp"
 import RBSheet from 'react-native-raw-bottom-sheet';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { LegacyButton } from "@src/legacyApp";
+=======
+import { GlobalStyleSheet } from "package/src/legacyApp";
+import { COLORS, FONTS, IMAGES, SIZES } from "package/src/legacyApp"
+import RBSheet from 'react-native-raw-bottom-sheet';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import { LegacyButton } from "package/src/legacyApp";
+>>>>>>> theirs
 import AnimatedDropdown from "../../components/ui/AnimatedDropdown"
 import { useGlobal } from "../../context/context";
 

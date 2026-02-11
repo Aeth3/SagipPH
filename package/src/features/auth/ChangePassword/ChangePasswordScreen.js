@@ -1,5 +1,9 @@
 import React from "react";
+<<<<<<< ours
 import { LegacyChangePasswordPage } from "@src/legacyApp";
+=======
+import { LegacyChangePasswordPage } from "package/src/legacyApp";
+>>>>>>> theirs
 import { useChangePasswordController } from "./controllers/ChangePasswordController";
 import CustomModal from "../../../../components/ui/Modal";
 

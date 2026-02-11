@@ -1,4 +1,8 @@
+<<<<<<< ours
 import { COLORS } from "@src/legacyApp";
+=======
+import { COLORS } from "package/src/legacyApp";
+>>>>>>> theirs
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 

@@ -1,7 +1,11 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, Picker } from "react-native";
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+<<<<<<< ours
 import { FONTS, COLORS } from "@src/legacyApp";
+=======
+import { FONTS, COLORS } from "package/src/legacyApp";
+>>>>>>> theirs
 
 const FilterField = ({ field, value, onChange, theme, options }) => {
     const { colors } = theme;

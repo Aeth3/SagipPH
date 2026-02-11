@@ -1,4 +1,8 @@
+<<<<<<< ours
 import { COLORS } from "@src/legacyApp";
+=======
+import { COLORS } from "package/src/legacyApp";
+>>>>>>> theirs
 import TestScreen from "../components/ui/TestScreen";
 import HomeScreen from "../features/Home/HomeScreen";
 import MenuScreen from "@features/menu/MenuScreen";

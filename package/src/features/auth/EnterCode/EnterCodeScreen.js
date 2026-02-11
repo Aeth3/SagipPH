@@ -1,5 +1,9 @@
 import React from "react";
+<<<<<<< ours
 import { LegacyEnterCodePage } from "@src/legacyApp";
+=======
+import { LegacyEnterCodePage } from "package/src/legacyApp";
+>>>>>>> theirs
 import { useEnterCodeController } from "./controllers/EnterCodeController";
 import CustomModal from "../../../../components/ui/Modal";
 

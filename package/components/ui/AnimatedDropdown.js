@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { ListItem } from '@react-native-material/core';
+<<<<<<< ours
 import { COLORS, FONTS } from '@src/legacyApp';
+=======
+import { COLORS, FONTS } from 'package/src/legacyApp';
+>>>>>>> theirs
 
 const AnimatedDropdown = ({
     options = [],        // array of { title: string, value: any }

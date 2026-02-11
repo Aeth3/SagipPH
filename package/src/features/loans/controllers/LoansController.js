@@ -1,4 +1,8 @@
+<<<<<<< ours
 import { COLORS } from "@src/legacyApp";
+=======
+import { COLORS } from "package/src/legacyApp";
+>>>>>>> theirs
 import { FiltersSheet } from "../../../../components/ui/SearchBarWithFilter";
 import config from "../config.json"
 import { useState } from "react";

@@ -1,4 +1,8 @@
+<<<<<<< ours
 import { LegacyCreateAccountPage } from "@src/legacyApp"
+=======
+import { LegacyCreateAccountPage } from "package/src/legacyApp"
+>>>>>>> theirs
 import { useSignUpController } from "./controllers/SignUpController";
 
 export default function SignUpScreen() {

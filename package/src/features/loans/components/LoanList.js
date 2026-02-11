@@ -6,7 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+<<<<<<< ours
 import { COLORS, FONTS, SIZES } from "@src/legacyApp";
+=======
+import { COLORS, FONTS, SIZES } from "package/src/legacyApp";
+>>>>>>> theirs
 
 const STATUS_COLORS = {
   approved: COLORS.success,
