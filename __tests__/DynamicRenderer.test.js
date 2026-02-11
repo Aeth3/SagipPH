@@ -2,6 +2,10 @@ import React from "react";
 import renderer from "react-test-renderer";
 import DynamicRenderer from "../package/components/DynamicRenderer";
 
+jest.mock("../package/components/ComponentRegistry", () => ({
+    componentRegistry: {},
+}));
+
 describe("DynamicRenderer", () => {
     let warnSpy;
 
