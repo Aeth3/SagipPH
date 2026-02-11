@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAuth } from "../../../../../src/presentation/hooks/useAuth";
+import { useAuth } from "../../../../presentation/hooks/useAuth";
 import { useNavigation } from "@react-navigation/native";
 import config from "../config.json";
 import { useGlobal } from "../../../../../context/context";

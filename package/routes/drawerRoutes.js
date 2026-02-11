@@ -1,11 +1,11 @@
 import { COLORS } from "../app/constants/theme";
 import TestScreen from "../components/ui/TestScreen";
 import HomeScreen from "../features/Home/HomeScreen";
-import MenuScreen from "../src/features/menu/MenuScreen";
+import MenuScreen from "@features/menu/MenuScreen";
 import LeafletMap from "../components/ui/LeafletMap";
 import { StackNavigator } from "../navigators/AppNavigator";
-import Entry from "../src/features/auth/Home/Entry";
-import LoansScreen from "../src/features/loans/LoansScreen"
+import Entry from "@features/auth/Home/Entry";
+import LoansScreen from "@features/loans/LoansScreen"
 
 export const drawerRoutes = [
     // {

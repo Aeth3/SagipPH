@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "../../../hooks/useAuth";
+import { useAuth } from "../../../../presentation/hooks/useAuth";
 import { useGlobal } from "../../../../../context/context";
 
 export const useChangePasswordController = () => {

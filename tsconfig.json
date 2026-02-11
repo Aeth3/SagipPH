@@ -14,6 +14,9 @@
       ],
       "@utils/*": [
         "package/utils/*"
+      ],
+      "@features/*": [
+        "package/src/features/*"
       ]
     }
   },

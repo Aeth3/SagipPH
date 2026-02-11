@@ -16,7 +16,7 @@ import Reels from "./ui/Reels";
 import FiltersList from "../components/ui/FilterList"
 import SearchBar from "./ui/SearchBar";
 import SearchBarWithFilter from "../components/ui/SearchBarWithFilter"
-import LoanList from "../src/features/loans/components/LoanList"
+import LoanList from "@features/loans/components/LoanList"
 import HeaderTitle from "./ui/HeaderTitle";
 /* Register all reusable UI components */
 

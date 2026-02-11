@@ -5,7 +5,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>en</string>
 		<key>CFBundleDisplayName</key>
-		<string>Vaultie - Vault Manager</string>
+		<string>Main App</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>

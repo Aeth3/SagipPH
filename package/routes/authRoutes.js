@@ -1,7 +1,7 @@
 export const authRoutes = [
     {
         name: "Login",
-        getComponent: () => require("../src/features/auth/Login/LoginScreen").default,
+        getComponent: () => require("@features/auth/Login/LoginScreen").default,
         options: {
             title: "Sign In",
             headerShown: false,
@@ -9,7 +9,7 @@ export const authRoutes = [
     },
     {
         name: "SignUp",
-        getComponent: () => require("../src/features/auth/SignUp/SignUpScreen").default,
+        getComponent: () => require("@features/auth/SignUp/SignUpScreen").default,
         options: {
             title: "Sign In",
             headerShown: false,
@@ -17,7 +17,7 @@ export const authRoutes = [
     },
     {
         name: "ChangePassword",
-        getComponent: () => require("../src/features/auth/ChangePassword/ChangePasswordScreen").default,
+        getComponent: () => require("@features/auth/ChangePassword/ChangePasswordScreen").default,
         options: {
             title: "Change Password",
             headerShown: false,
@@ -25,7 +25,7 @@ export const authRoutes = [
     },
     {
         name: "ForgotPassword",
-        getComponent: () => require("../src/features/auth/ForgotPassword/ForgotPasswordScreen").default,
+        getComponent: () => require("@features/auth/ForgotPassword/ForgotPasswordScreen").default,
         options: {
             title: "Forgot Password",
             headerShown: false,
@@ -33,7 +33,7 @@ export const authRoutes = [
     },
     {
         name: "EnterCode",
-        getComponent: () => require("../src/features/auth/EnterCode/EnterCodeScreen").default,
+        getComponent: () => require("@features/auth/EnterCode/EnterCodeScreen").default,
         options: {
             title: "Enter Code",
             headerShown: false,
