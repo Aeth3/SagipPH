@@ -1,4 +1,4 @@
-import { COLORS } from "../app/constants/theme";
+import { COLORS } from "@src/legacyApp";
 import TestScreen from "../components/ui/TestScreen";
 import HomeScreen from "../features/Home/HomeScreen";
 import MenuScreen from "@features/menu/MenuScreen";

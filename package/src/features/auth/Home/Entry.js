@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import Screen from "../../../../components/layout/Screen";
-import { COLORS } from "../../../../app/constants/theme";
+import { COLORS } from "@src/legacyApp";
 
 export default function Entry({ route }) {
   return (

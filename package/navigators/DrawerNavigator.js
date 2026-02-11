@@ -2,8 +2,8 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { View } from "react-native";
 import { drawerRoutes } from "../routes/drawerRoutes";
 import CustomDrawer from "../components/ui/CustomDrawer";
-import { COLORS } from "../app/constants/theme";
-import Button from "../app/components/Button/Button";
+import { COLORS } from "@src/legacyApp";
+import { LegacyButton } from "@src/legacyApp";
 import { useActionHandlers } from "../global/actionHandlers";
 import { useAuth } from "../src/presentation/hooks/useAuth";
 
@@ -63,7 +63,7 @@ export default function DrawerNavigator() {
                 route.hasHeader && (
                   <View style={{ flexDirection: "row", gap: 5, marginRight: 5 }}>
                     {route.headers.map((header) => (
-                      <Button
+                      <LegacyButton
                         key={header.key}
                         title={header.label}
                         color={header.color}

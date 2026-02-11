@@ -8,7 +8,7 @@ import { faChevronDown, faChevronUp, faRightFromBracket } from "@fortawesome/fre
 import { useNavigationState } from '@react-navigation/native';
 import ProfileHeader from "./ProfileHeader";
 import CustomModal from "./Modal";
-import { COLORS } from "../../app/constants/theme"
+import { COLORS } from "@src/legacyApp"
 
 export default function CustomDrawer({ navigation, logout }) {
     const [expanded, setExpanded] = useState({});

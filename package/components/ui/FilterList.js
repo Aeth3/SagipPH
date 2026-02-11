@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faMagnifyingGlass, faSliders } from '@fortawesome/free-solid-svg-icons';
-import { GlobalStyleSheet } from "../../app/constants/StyleSheet";
-import { COLORS, FONTS, IMAGES, SIZES } from "../../app/constants/theme"
+import { GlobalStyleSheet } from "@src/legacyApp";
+import { COLORS, FONTS, IMAGES, SIZES } from "@src/legacyApp"
 import RBSheet from 'react-native-raw-bottom-sheet';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
-import Button from "../../app/components/Button/Button";
+import { LegacyButton } from "@src/legacyApp";
 import AnimatedDropdown from "../../components/ui/AnimatedDropdown"
 import { useGlobal } from "../../context/context";
 
@@ -254,11 +254,11 @@ export default function FiltersList({ filters }) {
                     {/* ✅ Action Buttons */}
                     <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
                         <View style={{ flex: 1 }}>
-                            <Button title="Clear" color={COLORS.gray} onPress={handleClearFilters} />
+                            <LegacyButton title="Clear" color={COLORS.gray} onPress={handleClearFilters} />
                         </View>
 
                         <View style={{ flex: 1 }}>
-                            <Button
+                            <LegacyButton
                                 title="Apply"
                                 color={COLORS.primary6}
                                 onPress={() => {

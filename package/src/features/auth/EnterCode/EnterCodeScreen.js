@@ -1,5 +1,5 @@
 import React from "react";
-import EnterCode from "../../../../app/pages/Auth/EnterCode";
+import { LegacyEnterCodePage } from "@src/legacyApp";
 import { useEnterCodeController } from "./controllers/EnterCodeController";
 import CustomModal from "../../../../components/ui/Modal";
 
@@ -8,7 +8,7 @@ export default function EnterCodeScreen() {
 
   return (
     <>
-      <EnterCode
+      <LegacyEnterCodePage
         handleSubmit={handleSubmit}
         handleBack={handleBack}
         handleResend={handleResend}

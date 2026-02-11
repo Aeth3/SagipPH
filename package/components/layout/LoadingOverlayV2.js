@@ -1,7 +1,7 @@
 // components/LoadingOverlay.js
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../app/constants/theme';
+import { COLORS } from '@src/legacyApp';
 
 const LoadingOverlayV2 = ({
     visible = false,

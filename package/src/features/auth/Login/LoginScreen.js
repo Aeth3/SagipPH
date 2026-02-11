@@ -1,6 +1,6 @@
 import React from "react";
 import { useLoginController } from "./controllers/LoginController";
-import SignIn from "../../../../app/pages/Auth/SignIn";
+import { LegacySignInPage } from "@src/legacyApp";
 import config from "./config.json";
 
 export default function LoginScreen() {
@@ -14,7 +14,7 @@ export default function LoginScreen() {
     useLoginController();
 
   return (
-    <SignIn
+    <LegacySignInPage
       config={config}
       handleLogin={handleLogin}
       handleSignUp={handleSignUp}

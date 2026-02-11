@@ -1,4 +1,4 @@
-import { COLORS } from "package/app/constants/theme";
+import { COLORS } from "@src/legacyApp";
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 

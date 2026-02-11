@@ -1,4 +1,4 @@
-import CreateAccount from "../../../../app/pages/Auth/CreateAccount"
+import { LegacyCreateAccountPage } from "@src/legacyApp"
 import { useSignUpController } from "./controllers/SignUpController";
 
 export default function SignUpScreen() {
@@ -11,7 +11,7 @@ export default function SignUpScreen() {
   } = useSignUpController();
 
   return (
-    <CreateAccount
+    <LegacyCreateAccountPage
       handleSignUp={handleSignUp}
       handleHaveAccount={handleHaveAccount}
       loading={loading}

@@ -1,7 +1,7 @@
 import { Buffer } from "buffer"; // Import Buffer
 import { ActivityIndicator, Alert, Platform, StyleSheet, Text, View } from "react-native";
 
-import { COLORS } from "../app/constants/theme";
+import { COLORS } from "@src/legacyApp";
 import Snackbar from "react-native-snackbar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import RNFS from 'react-native-fs'

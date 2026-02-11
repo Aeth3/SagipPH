@@ -1,4 +1,4 @@
-import { COLORS } from "package/app/constants/theme";
+import { COLORS } from "@src/legacyApp";
 import { FiltersSheet } from "../../../../components/ui/SearchBarWithFilter";
 import config from "../config.json"
 import { useState } from "react";

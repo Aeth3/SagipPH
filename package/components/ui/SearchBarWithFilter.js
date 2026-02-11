@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-nativ
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faMagnifyingGlass, faSliders } from "@fortawesome/free-solid-svg-icons";
 import RBSheet from "react-native-raw-bottom-sheet";
-import { COLORS, FONTS, SIZES } from "package/app/constants/theme";
+import { COLORS, FONTS, SIZES } from "@src/legacyApp";
 import AnimatedDropdown from "./AnimatedDropdown";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 

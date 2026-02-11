@@ -1,5 +1,5 @@
 import React from "react";
-import ChangePassword from "../../../../app/pages/Auth/ChangePassword";
+import { LegacyChangePasswordPage } from "@src/legacyApp";
 import { useChangePasswordController } from "./controllers/ChangePasswordController";
 import CustomModal from "../../../../components/ui/Modal";
 
@@ -8,7 +8,7 @@ export default function ChangePasswordScreen() {
 
   return (
     <>
-      <ChangePassword
+      <LegacyChangePasswordPage
         handleSubmit={handleSubmit}
         handleSignIn={handleSignIn}
       />

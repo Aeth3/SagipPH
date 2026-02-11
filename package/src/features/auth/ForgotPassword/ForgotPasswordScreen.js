@@ -1,5 +1,5 @@
 import React from "react";
-import ForgotPassword from "../../../../app/pages/Auth/ForgotPassword";
+import { LegacyForgotPasswordPage } from "@src/legacyApp";
 import { useForgotPasswordController } from "./controllers/ForgotPasswordController";
 import CustomModal from "../../../../components/ui/Modal";
 
@@ -8,7 +8,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <>
-      <ForgotPassword handleSubmit={handleSubmit} handleBack={handleBack} />
+      <LegacyForgotPasswordPage handleSubmit={handleSubmit} handleBack={handleBack} />
       <CustomModal
         visible={modalInfo.show}
         title={modalInfo.title}
