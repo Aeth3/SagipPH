@@ -1,5 +1,5 @@
 import { FlatList } from "react-native";
-import Screen from "../../components/layout/Screen";
+import Screen from "../../../components/layout/Screen";
 import { useMenuController } from "./controller/MenuController";
 
 

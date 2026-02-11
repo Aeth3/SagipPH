@@ -1,6 +1,6 @@
-import { iconMap } from "../../../assets/icons/iconMap"
-import DynamicRenderer from "../../../components/DynamicRenderer"
-import { useActionHandlers } from "../../../global/actionHandlers"
+import { iconMap } from "../../../../assets/icons/iconMap"
+import DynamicRenderer from "../../../../components/DynamicRenderer"
+import { useActionHandlers } from "../../../../global/actionHandlers"
 
 import config from "../config.json"
 

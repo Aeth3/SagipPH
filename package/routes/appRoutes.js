@@ -1,7 +1,7 @@
 export const appRoutes = [
     {
         name: "Home",
-        getComponent: () => require("../src/presentation/auth/Home/Entry").default,
+        getComponent: () => require("../src/features/auth/Home/Entry").default,
         options: {
             title: "Home",
             headerShown: false,
@@ -16,3 +16,4 @@ export const appRoutes = [
         },
     },
 ];
+

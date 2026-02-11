@@ -1,5 +1,5 @@
 import { COLORS } from "package/app/constants/theme";
-import { FiltersSheet } from "../../../components/ui/SearchBarWithFilter";
+import { FiltersSheet } from "../../../../components/ui/SearchBarWithFilter";
 import config from "../config.json"
 import { useState } from "react";
 export const useLoansController = () => {
