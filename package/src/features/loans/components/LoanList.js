@@ -53,7 +53,7 @@ const LoanCard = ({ loan, onPress, onLongPress }) => {
   );
 };
 
-const LoanList = ({ loans = [], onPressItem, onLongPressItem }) => {
+const LoanList = ({ loans = [], onPressItem, onLongPressItem, onRetry }) => {
   return (
     <FlatList
       data={loans}
@@ -63,7 +63,7 @@ const LoanList = ({ loans = [], onPressItem, onLongPressItem }) => {
         <LoanCard loan={item} onPress={onPressItem} onLongPress={onLongPressItem} />
       )}
       showsVerticalScrollIndicator={false}
-      ListEmptyComponent={<EmptyState />}
+      ListEmptyComponent={<EmptyState onPressButton={onRetry} />}
     />
   );
 };

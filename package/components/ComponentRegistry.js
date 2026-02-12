@@ -105,6 +105,7 @@ export const componentRegistry = {
             loans={props?.loans}
             onPressItem={props?.onPressLoan}
             onLongPressItem={props?.onLongPressLoan}
+            onRetry={props?.onRetry}
         />
     ),
     headertitle: (config) => <HeaderTitle title={config.headerTitle} />,

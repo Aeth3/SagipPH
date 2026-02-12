@@ -1,4 +1,4 @@
-import { Text } from "react-native"
+import { View } from "react-native"
 import Screen from "../../../components/layout/Screen"
 import SearchBar from "../../../components/ui/SearchBar"
 import { useLoansController } from "./controllers/LoansController"
@@ -10,7 +10,9 @@ export default function LoansScreen() {
 
 
     return <Screen style={{ padding: 12 }}>
-        <Builder components={config.components} config={config} props={builderProps} />
+        <View style={{ flex: 1 }}>
+            <Builder components={config.components} config={config} props={builderProps} />
+        </View>
         {builderProps.filterSheet.Sheet}
         {builderProps.loanFormModal}
     </Screen>
