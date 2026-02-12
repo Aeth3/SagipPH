@@ -57,7 +57,7 @@ const LoanList = ({ loans = [], onPressItem, onLongPressItem }) => {
   return (
     <FlatList
       data={loans}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item, index) => (item.id ?? index).toString()}
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
         <LoanCard loan={item} onPress={onPressItem} onLongPress={onLongPressItem} />

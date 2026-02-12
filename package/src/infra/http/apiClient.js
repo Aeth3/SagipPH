@@ -3,6 +3,7 @@ import {
   API_BASE_URL,
   API_TIMEOUT,
   SUPABASE_URL,
+  SUPABASE_KEY,
   HTTP_BASE_TARGET,
 } from "@env";
 
@@ -46,6 +47,9 @@ const apiClient = axios.create({
   timeout: Number(API_TIMEOUT),
   headers: {
     "Content-Type": "application/json",
+    ...(ACTIVE_HTTP_BASE_TARGET === "supabase" && SUPABASE_KEY
+      ? { apikey: SUPABASE_KEY }
+      : {}),
   },
 });
 
@@ -55,6 +59,15 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Supabase PostgREST needs this header to return the created/updated row.
+    if (ACTIVE_HTTP_BASE_TARGET === "supabase") {
+      const method = (config.method || "").toUpperCase();
+      if (["POST", "PUT", "PATCH"].includes(method)) {
+        config.headers.Prefer = "return=representation";
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
