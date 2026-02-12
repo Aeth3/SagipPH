@@ -9,7 +9,7 @@ const Button = (props) => {
             onPress={() => props.onPress && props.onPress()}
             style={[{
                 ...props.style,
-                backgroundColor: props.color ? props.color : COLORS.primary,
+                backgroundColor: props.color ? props.color : COLORS.primary2,
                 paddingHorizontal: 18,
                 paddingVertical: 12,
                 borderRadius: props.btnSquare ? 0 : props.btnRounded ? 30 : SIZES.radius,

@@ -53,4 +53,57 @@ describe("AuthRepositoryMockImpl", () => {
     await expect(repo.updatePassword({ password: "nextPassword" })).resolves.toBeUndefined();
     await expect(repo.updatePassword({ password: "" })).rejects.toThrow("Password is required");
   });
+
+  describe("sendOtp / verifyOtp", () => {
+    it("sendOtp stores pending phone and code", async () => {
+      const repo = new AuthRepositoryMockImpl();
+      await repo.sendOtp({ phone: "+639171234567" });
+
+      expect(repo.pendingPhone).toBe("+639171234567");
+      expect(repo.pendingCode).toBe("123456");
+    });
+
+    it("verifyOtp returns user and session when code matches", async () => {
+      const repo = new AuthRepositoryMockImpl();
+      await repo.sendOtp({ phone: "+639171234567" });
+
+      const result = await repo.verifyOtp({
+        phone: "+639171234567",
+        code: "123456",
+      });
+
+      expect(result.user).toBeDefined();
+      expect(result.session).toBeDefined();
+      expect(result.session.access_token).toEqual(
+        expect.stringMatching(/^demo_access_/)
+      );
+    });
+
+    it("verifyOtp throws when code is wrong", async () => {
+      const repo = new AuthRepositoryMockImpl();
+      await repo.sendOtp({ phone: "+639171234567" });
+
+      await expect(
+        repo.verifyOtp({ phone: "+639171234567", code: "000000" })
+      ).rejects.toThrow("Invalid OTP code");
+    });
+
+    it("verifyOtp throws when phone is wrong", async () => {
+      const repo = new AuthRepositoryMockImpl();
+      await repo.sendOtp({ phone: "+639171234567" });
+
+      await expect(
+        repo.verifyOtp({ phone: "+639999999999", code: "123456" })
+      ).rejects.toThrow("Invalid OTP code");
+    });
+
+    it("verifyOtp throws when no OTP was sent", async () => {
+      const repo = new AuthRepositoryMockImpl();
+
+      await expect(
+        repo.verifyOtp({ phone: "+639171234567", code: "123456" })
+      ).rejects.toThrow("Invalid OTP code");
+    });
+  });
+
 });

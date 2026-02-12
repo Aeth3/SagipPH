@@ -112,6 +112,19 @@ export class AuthRepositoryMockImpl extends AuthRepository {
       throw new Error("Password is required");
     }
   }
+
+  async sendOtp({ phone }) {
+    this.pendingPhone = phone;
+    this.pendingCode = '123456';
+  }
+
+  async verifyOtp({ phone, code }) {
+    if (phone !== this.pendingPhone || code !== this.pendingCode) {
+      throw new Error('Invalid OTP code');
+    }
+    const user = mapToDomainUser({ ...DEFAULT_USER, phone });
+    return { user, session: buildMockSession(user) };
+  }
 }
 
 export const authRepositoryMock = new AuthRepositoryMockImpl();

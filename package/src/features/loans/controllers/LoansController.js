@@ -171,7 +171,7 @@ export const useLoansController = () => {
             text: COLORS.text,
             cardBg: COLORS.white,
             borderColor: COLORS.borderColor,
-            primary: COLORS.primary,
+            primary: COLORS.primary2,
         },
         loans,
         loading,

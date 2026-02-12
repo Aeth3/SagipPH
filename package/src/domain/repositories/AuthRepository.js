@@ -51,4 +51,13 @@ export class AuthRepository {
   async updatePassword(_payload) {
     throw new Error("AuthRepository.updatePassword() not implemented");
   }
+  async sendOtp(_payload) {
+    throw new Error('AuthRepository.sendOtp() not implemented');
+  }
+
+  async verifyOtp(_payload) {
+    throw new Error('AuthRepository.verifyOtp() not implemented');
+  }
 }
+
+

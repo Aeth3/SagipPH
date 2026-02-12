@@ -120,7 +120,7 @@ const SignIn = ({
                             {/* Forgot Password */}
                             <View style={{ alignItems: 'flex-end', marginBottom: 15 }}>
                                 <TouchableOpacity onPress={handleForgotPassword}>
-                                    <Text style={[FONTS.fontLg, { color: COLORS.primary, textDecorationLine: 'underline' }]}>
+                                    <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: 'underline' }]}>
                                         Forgot Password
                                     </Text>
                                 </TouchableOpacity>
@@ -162,7 +162,7 @@ const SignIn = ({
                                     Don’t have an account?
                                 </Text>
                                 <TouchableOpacity onPress={handleSignUp} style={{ marginLeft: 5 }}>
-                                    <Text style={[FONTS.fontLg, { color: COLORS.primary, textDecorationLine: 'underline' }]}>
+                                    <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: 'underline' }]}>
                                         Signup here
                                     </Text>
                                 </TouchableOpacity>

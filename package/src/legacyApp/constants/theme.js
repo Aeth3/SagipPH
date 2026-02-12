@@ -135,9 +135,9 @@ export const ICONS = {
 }
 
 export const IMAGES = {
-
+	logoBig: require('../../../assets/logo_big.png'),
 	logo: require('../../../assets/logo_white.png'),
-	appLogo: require('../../../assets/logo_white.png'),
+	appLogo: require('../../../assets/app_logo.png'),
 	appIcon: require('../assets/images/global/appIcon.png'),
 	applications: require('../assets/images/global/applications.png'),
 	logoWhite: require('../assets/images/global/logo-full-white.png'),

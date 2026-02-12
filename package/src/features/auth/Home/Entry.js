@@ -8,7 +8,7 @@ export default function Entry({ route }) {
       <View style={{ flex: 1, justifyContent: "center" }}>
         <Text
           style={{
-            color: COLORS.primary,
+            color: COLORS.primary2,
             alignSelf: "center",
             fontWeight: "700",
             fontSize: 30,

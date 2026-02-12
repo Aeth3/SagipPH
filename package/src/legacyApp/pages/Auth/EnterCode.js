@@ -17,9 +17,9 @@ import { GlobalStyleSheet } from "../../constants/StyleSheet";
 import { COLORS, FONTS, SIZES, ICONS, IMAGES } from "../../constants/theme";
 
 const EnterCode = ({
-  handleSubmit = () => {},
-  handleBack = () => {},
-  handleResend = () => {},
+  handleSubmit = () => { },
+  handleBack = () => { },
+  handleResend = () => { },
 }) => {
   const [code, setCode] = useState("");
 
@@ -99,7 +99,7 @@ const EnterCode = ({
                   }}
                   onCodeChanged={setCode}
                   codeInputHighlightStyle={{
-                    borderColor: COLORS.primary,
+                    borderColor: COLORS.primary2,
                   }}
                 />
               </View>
@@ -126,7 +126,7 @@ const EnterCode = ({
               <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 15, marginTop: 5 }}>
                 <Text style={[FONTS.font, { color: COLORS.white, opacity: 0.7 }]}>Did not receive a code?</Text>
                 <TouchableOpacity style={{ marginLeft: 5 }} onPress={handleResend}>
-                  <Text style={[FONTS.fontLg, { color: COLORS.primary, textDecorationLine: "underline" }]}>Resend</Text>
+                  <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: "underline" }]}>Resend</Text>
                 </TouchableOpacity>
               </View>
             </View>

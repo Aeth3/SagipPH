@@ -74,6 +74,7 @@ describe("AuthRepositoryImpl", () => {
     expect(result.user).toEqual({
       id: "u1",
       email: "user@example.com",
+      phone: null,
       first_name: "Jane",
       last_name: "Doe",
       raw_user_meta_data: { first_name: "Jane", last_name: "Doe" },

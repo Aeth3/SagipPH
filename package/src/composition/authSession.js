@@ -14,6 +14,9 @@ import { makeClearSession } from "../domain/usecases/ClearSession";
 import { makeRequestPasswordReset } from "../domain/usecases/RequestPasswordReset";
 import { makeVerifyRecoveryCode } from "../domain/usecases/VerifyRecoveryCode";
 import { makeUpdatePassword } from "../domain/usecases/UpdatePassword";
+import { makeSendOtp } from "../domain/usecases/SendOtp";
+import { makeVerifyOtp } from "../domain/usecases/VerifyOtp";
+import { authRepositoryApi } from "../data/repositories/AuthRepositoryApiImpl";
 
 const normalizeBoolean = (value) => {
   if (typeof value === "boolean") return value;
@@ -25,7 +28,7 @@ export const IS_DEMO_MODE = normalizeBoolean(DEMO_MODE);
 
 const authRepository = IS_DEMO_MODE
   ? authRepositoryMock
-  : authRepositorySupabase;
+  : authRepositoryApi;
 
 export const signInWithPassword = makeSignInWithPassword({ authRepository });
 export const signUp = makeSignUp({ authRepository });
@@ -38,6 +41,8 @@ export const clearSession = makeClearSession({ sessionRepository });
 export const requestPasswordReset = makeRequestPasswordReset({ authRepository });
 export const verifyRecoveryCode = makeVerifyRecoveryCode({ authRepository });
 export const updatePassword = makeUpdatePassword({ authRepository });
+export const sendOtp = makeSendOtp({ authRepository });
+export const verifyOtp = makeVerifyOtp({ authRepository });
 
 setAccessTokenProvider(async () => {
   const result = await getAccessToken();

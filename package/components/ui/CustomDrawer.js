@@ -34,13 +34,13 @@ export default function CustomDrawer({ navigation, logout }) {
                                         setExpanded(prev => ({ ...prev, [route.name]: !prev[route.name] }))
                                     }
                                 >
-                                    <Text style={[styles.parentText, isParentActive && [styles.activeText, { color: COLORS.primary }]]}>
+                                    <Text style={[styles.parentText, isParentActive && [styles.activeText, { color: COLORS.primary2 }]]}>
                                         {route.label}
                                     </Text>
                                     <FontAwesomeIcon
                                         icon={expanded[route.name] ? faChevronUp : faChevronDown}
                                         size={14}
-                                        color={isParentActive ? COLORS.primary : "#666"}
+                                        color={isParentActive ? COLORS.primary2 : "#666"}
                                     />
                                 </TouchableOpacity>
                             )}
@@ -56,7 +56,7 @@ export default function CustomDrawer({ navigation, logout }) {
                                                 style={[styles.childItem, isActive && styles.activeChildItem]}
                                                 onPress={() => navigation.navigate(child.name)}
                                             >
-                                                <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primary }]]}>
+                                                <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primary2 }]]}>
                                                     {child.label}
                                                 </Text>
                                             </TouchableOpacity>
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     childText: { fontSize: 14, color: "#555", fontWeight: "700" },
     activeItem: { backgroundColor: "#1e90ff33" },
     activeChildItem: { backgroundColor: "#1e90ff22" },
-    activeText: { color: COLORS.primary, fontWeight: "700" },
+    activeText: { color: COLORS.primary2, fontWeight: "700" },
     divider: {
         borderTopWidth: 1,
         borderColor: "#ccc",

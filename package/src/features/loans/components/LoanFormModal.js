@@ -254,8 +254,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
     },
     statusPillSelected: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
+        backgroundColor: COLORS.primary2,
+        borderColor: COLORS.primary2,
     },
     statusPillText: {
         ...FONTS.fontSm,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#E5E7EB",
     },
     saveButton: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: COLORS.primary2,
     },
     cancelText: {
         ...FONTS.fontSm,

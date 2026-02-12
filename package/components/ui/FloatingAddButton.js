@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     // Modern gradient-style color
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primary2,
 
     // iOS Shadow
     shadowColor: COLORS.secondary,
