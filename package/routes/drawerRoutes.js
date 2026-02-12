@@ -45,7 +45,7 @@ export const drawerRoutes = [
         //         component: MenuScreen,
         //         icon: "list",
         //     },
-            
+
         // ],
         // headers: [
         //     {
@@ -60,13 +60,13 @@ export const drawerRoutes = [
         //     }
         // ]
     },
-    {
-         name: "LoansScreen",
-        label: "Loans",
-        component: LoansScreen,
-        icon: "loans", // optional FontAwesome icon name
-        hasHeader: false,
-    }
+    // {
+    //      name: "LoansScreen",
+    //     label: "Loans",
+    //     component: LoansScreen,
+    //     icon: "loans", // optional FontAwesome icon name
+    //     hasHeader: false,
+    // }
 
 ];
 

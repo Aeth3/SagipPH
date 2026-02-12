@@ -48,6 +48,31 @@ describe("makeVerifyOtp", () => {
         expect(result.error.code).toBe("VALIDATION_ERROR");
     });
 
+    it("returns fail when code is not 6 digits", async () => {
+        const authRepository = { verifyOtp: jest.fn() };
+        const verifyOtp = makeVerifyOtp({ authRepository });
+
+        const result = await verifyOtp({ phone: "+639171234567", code: "12345" });
+
+        expect(authRepository.verifyOtp).not.toHaveBeenCalled();
+        expect(result.ok).toBe(false);
+        expect(result.error).toEqual({
+            code: "VALIDATION_ERROR",
+            message: "OTP code must be exactly 6 digits",
+        });
+    });
+
+    it("returns fail when code contains non-digit characters", async () => {
+        const authRepository = { verifyOtp: jest.fn() };
+        const verifyOtp = makeVerifyOtp({ authRepository });
+
+        const result = await verifyOtp({ phone: "+639171234567", code: "12ab56" });
+
+        expect(authRepository.verifyOtp).not.toHaveBeenCalled();
+        expect(result.ok).toBe(false);
+        expect(result.error.code).toBe("VALIDATION_ERROR");
+    });
+
     it("returns fail when phone is invalid", async () => {
         const authRepository = { verifyOtp: jest.fn() };
         const verifyOtp = makeVerifyOtp({ authRepository });

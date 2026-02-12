@@ -7,6 +7,7 @@ export const makeVerifyOtp = ({ authRepository }) => {
             const normalizedPhone = createPhone(phone);
             const normalizedCode = typeof code === 'string' ? code.trim() : '';
             if (!normalizedCode) return fail('VALIDATION_ERROR', 'OTP code is required');
+            if (!/^\d{6}$/.test(normalizedCode)) return fail('VALIDATION_ERROR', 'OTP code must be exactly 6 digits');
 
             const result = await authRepository.verifyOtp({
                 phone: normalizedPhone,

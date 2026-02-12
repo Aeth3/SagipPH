@@ -15,6 +15,7 @@ import { useTheme, useFocusEffect } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
+import LinearGradient from 'react-native-linear-gradient';
 
 
 const DATA = [
@@ -33,17 +34,12 @@ const Onboarding = (props) => {
                 return true;
             };
 
-            BackHandler.addEventListener(
+            const subscription = BackHandler.addEventListener(
                 'hardwareBackPress',
                 onBackPress
             );
 
-            return () => {
-                BackHandler.removeEventListener(
-                    'hardwareBackPress',
-                    onBackPress
-                );
-            };
+            return () => subscription.remove();
         }, []),
     );
 
@@ -60,6 +56,14 @@ const Onboarding = (props) => {
                         justifyContent: 'center',
                         height: SIZES.height / 2.2,
                     }}>
+                        <LinearGradient
+                            colors={['#F7F5FF', 'rgba(255,255,255,0)']}
+                            style={styles.topGradient}
+                        />
+                        <LinearGradient
+                            colors={['#F7F5FF', 'rgba(255,255,255,0)']}
+                            style={styles.bottomGradient}
+                        />
                         <Image
                             style={{
                                 width: 350,
@@ -79,6 +83,7 @@ const Onboarding = (props) => {
                             }}
                             source={IMAGES.loginShape}
                         />
+
                     </View>
                     <View style={{ backgroundColor: '#332A5E', flex: 1 }}>
                         <View style={{ flex: 1 }}>
@@ -96,7 +101,7 @@ const Onboarding = (props) => {
 
                                     <View style={[styles.slideItem]} key={index}>
                                         <Text style={[FONTS.h2, { textAlign: 'center', color: COLORS.white }]}>{data.title}</Text>
-                                        <Text style={[FONTS.font, { textAlign: 'center', color: COLORS.white, opacity: .7 }]}>{data.desc}</Text>
+                                        <Text style={[FONTS.fontLg, { textAlign: 'center', color: COLORS.white, opacity: .7 }]}>{data.desc}</Text>
                                     </View>
 
                                 ))}
@@ -109,10 +114,10 @@ const Onboarding = (props) => {
 
                         </View>
                         <View style={GlobalStyleSheet.container}>
-                            <View style={{ paddingBottom: 15 }}>
+                            <View style={{ marginBottom: 50 }}>
                                 <CustomButton
                                     title="PROCEED"
-                                    onPress={() => props.navigation.navigate('CreateAccount')}
+                                    onPress={() => props.navigation.navigate('PhoneEntry')}
                                 />
                             </View>
                             {/* <View>

@@ -89,6 +89,7 @@ describe("useAuth", () => {
       });
 
       expect(result).toEqual({ success: false, error: "Network error" });
+      expect(setLoading).toHaveBeenLastCalledWith(false);
     });
   });
 
@@ -149,7 +150,7 @@ describe("useAuth", () => {
         result = await auth.confirmOtp("+639171234567", "123456");
       });
 
-      expect(result).toEqual({ success: false, error: "Server error" });
+      expect(result).toEqual({ success: false, error: "Verification failed" });
     });
   });
 

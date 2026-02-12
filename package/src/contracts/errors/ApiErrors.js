@@ -22,6 +22,11 @@ export const ApiErrorCode = {
     PASSWORD_TOO_SHORT: "PASSWORD_TOO_SHORT",
     VALIDATION_ERROR: "VALIDATION_ERROR",
 
+    // OTP errors
+    OTP_EXPIRED: "OTP_EXPIRED",
+    OTP_INVALID: "OTP_INVALID",
+    RATE_LIMITED: "RATE_LIMITED",
+
     // Network errors
     NETWORK_ERROR: "NETWORK_ERROR",
     REQUEST_TIMEOUT: "REQUEST_TIMEOUT",
@@ -61,6 +66,8 @@ export const mapHttpStatusToErrorCode = (statusCode) => {
             return ApiErrorCode.NOT_FOUND;
         case 409:
             return ApiErrorCode.CONFLICT;
+        case 429:
+            return ApiErrorCode.RATE_LIMITED;
         case 500:
             return ApiErrorCode.SERVER_ERROR;
         case 503:

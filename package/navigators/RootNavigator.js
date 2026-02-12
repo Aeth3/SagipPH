@@ -21,14 +21,20 @@ export default function RootNavigator() {
         }
     }, [loading]);
 
-    if (loading || auth === undefined) {
-        return <LoadingOverlay visible={loading} />
+    // While bootstrapping (auth not yet resolved), show only the loading overlay.
+    if (auth === undefined) {
+        return <LoadingOverlay visible={true} />;
     }
 
+    // Once bootstrap is done, always keep NavigationContainer mounted so
+    // navigation state (e.g. OTP screen) is never lost by a loading toggle.
     return (
-        <NavigationContainer>
-            {/* 3. Simple Switch Logic */}
-            {auth ? <AppNavigator /> : <AuthNavigator />}
-        </NavigationContainer>
+        <>
+            <NavigationContainer>
+                {/* 3. Simple Switch Logic */}
+                {auth ? <AppNavigator /> : <AuthNavigator />}
+            </NavigationContainer>
+            <LoadingOverlay visible={loading} />
+        </>
     );
 }

@@ -2,18 +2,52 @@ import apiClient from '../../infra/http/apiClient';
 import { AuthRepository } from '../../domain/repositories/AuthRepository';
 import { createSession } from '../../domain/entities/Session';
 import { createUser } from '../../domain/entities/User';
+import {
+    validateSendOtpResponse,
+    validateVerifyOtpResponse,
+    isOtpExpiredError,
+    isRateLimitedError,
+} from '../../contracts/api/otpAuth.contract';
+
+const classifyOtpError = (error) => {
+    if (isRateLimitedError(error)) {
+        throw new Error('Too many attempts. Please wait before trying again.');
+    }
+    if (isOtpExpiredError(error)) {
+        throw new Error('OTP code has expired. Please request a new code.');
+    }
+    throw new Error(error?.message || 'Network error');
+};
 
 export class AuthRepositoryApiImpl extends AuthRepository {
     async sendOtp({ phone }) {
-        const response = await apiClient.post('/auth/otp/send', { phone });
-        // apiClient interceptor already unwraps response.data
-        if (!response?.success) {
+        let response;
+        try {
+            response = await apiClient.post('/auth/otp/send', { phone });
+        } catch (error) {
+            classifyOtpError(error);
+        }
+        const validation = validateSendOtpResponse(response);
+        if (!validation.valid) {
+            throw new Error(validation.error);
+        }
+        if (!response.success) {
             throw new Error(response?.message || 'Failed to send OTP');
         }
     }
 
     async verifyOtp({ phone, code }) {
-        const response = await apiClient.post('/auth/otp/verify', { phone, code });
+        let response;
+        try {
+            response = await apiClient.post('/auth/otp/verify', { phone, code });
+        } catch (error) {
+            classifyOtpError(error);
+        }
+
+        const validation = validateVerifyOtpResponse(response);
+        if (!validation.valid) {
+            throw new Error(validation.error);
+        }
 
         const user = createUser({
             id: response.user.id,
