@@ -18,6 +18,7 @@ import SearchBar from "./ui/SearchBar";
 import SearchBarWithFilter from "../components/ui/SearchBarWithFilter"
 import LoanList from "@features/loans/components/LoanList"
 import HeaderTitle from "./ui/HeaderTitle";
+import FloatingAddButton from "./ui/FloatingAddButton";
 /* Register all reusable UI components */
 
 const safeArray = (value) => (Array.isArray(value) ? value : []);
@@ -100,5 +101,6 @@ export const componentRegistry = {
         />
     ),
     loanlist: (config, { props }) => <LoanList loans={props?.loans} />,
-    headertitle: (config) => <HeaderTitle title={config.headerTitle} />
+    headertitle: (config) => <HeaderTitle title={config.headerTitle} />,
+    floatingaddbutton: (config, { props }) => <FloatingAddButton onPress={props?.handlePressAddButton} alignment={config.addButtonAlignment} />
 };

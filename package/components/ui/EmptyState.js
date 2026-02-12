@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { faBoxOpen } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { COLORS } from "package/src/legacyApp";
 
 const EmptyState = ({
     icon = "folder-open-outline",
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     button: {
-        backgroundColor: "#2563EB",
+        backgroundColor: COLORS.primary,
         borderRadius: 8,
         paddingVertical: 10,
         paddingHorizontal: 18,
