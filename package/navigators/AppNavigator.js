@@ -10,7 +10,7 @@ const Stack = createStackNavigator()
 export function StackNavigator({ paddingTop = 0 }) {
     return (
         <Stack.Navigator
-            initialRouteName="Home"
+            initialRouteName="Chat"
             detachInactiveScreens={true}
             screenOptions={{
                 headerShown: false,

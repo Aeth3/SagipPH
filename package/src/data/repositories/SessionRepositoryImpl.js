@@ -30,6 +30,16 @@ export class SessionRepositoryImpl extends SessionRepository {
 
     return null;
   }
+
+  async getRefreshToken() {
+    const session = await this.getSession();
+    if (!session) return null;
+
+    const refresh = session.refresh_token ?? session.refreshToken ?? null;
+    if (!refresh || typeof refresh !== "string") return null;
+
+    return refresh;
+  }
 }
 
 export const sessionRepository = new SessionRepositoryImpl();

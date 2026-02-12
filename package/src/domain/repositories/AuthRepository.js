@@ -58,6 +58,15 @@ export class AuthRepository {
   async verifyOtp(_payload) {
     throw new Error('AuthRepository.verifyOtp() not implemented');
   }
+
+  /**
+   * Refresh the session using a refresh token.
+   * @param {string} refreshToken
+   * @returns {Promise<{access_token: string, refresh_token: string}>}
+   */
+  async refreshSession(_refreshToken) {
+    throw new Error('AuthRepository.refreshSession() not implemented');
+  }
 }
 
 

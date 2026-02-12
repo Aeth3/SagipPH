@@ -27,8 +27,8 @@ export const drawerRoutes = [
     //     ],
     // },
     {
-        name: "HomeScreen",
-        label: "Home",
+        name: "Chat",
+        label: "Chat",
         component: StackNavigator,
         icon: "home", // optional FontAwesome icon name
         hasHeader: false,

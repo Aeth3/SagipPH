@@ -1,9 +1,9 @@
 export const appRoutes = [
     {
-        name: "Home",
-        getComponent: () => require("@features/auth/Home/Entry").default,
+        name: "Chat",
+        getComponent: () => require("@features/Chat/ChatScreen").default,
         options: {
-            title: "Home",
+            title: "Chat",
             headerShown: false,
         },
     },

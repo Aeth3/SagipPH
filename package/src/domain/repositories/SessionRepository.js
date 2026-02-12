@@ -18,4 +18,8 @@ export class SessionRepository {
   async getAccessToken() {
     throw new Error("SessionRepository.getAccessToken() not implemented");
   }
+
+  async getRefreshToken() {
+    throw new Error("SessionRepository.getRefreshToken() not implemented");
+  }
 }

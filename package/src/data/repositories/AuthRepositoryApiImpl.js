@@ -91,6 +91,21 @@ export class AuthRepositoryApiImpl extends AuthRepository {
     async requestPasswordReset() { throw new Error('Not used in phone auth'); }
     async verifyRecoveryCode() { throw new Error('Not used in phone auth'); }
     async updatePassword() { throw new Error('Not used in phone auth'); }
+
+    async refreshSession(refreshToken) {
+        const response = await apiClient.post('/auth/refresh', null, {
+            headers: { Authorization: `Bearer ${refreshToken}` },
+        });
+
+        if (!response?.access_token) {
+            throw new Error(response?.message || 'Token refresh failed');
+        }
+
+        return {
+            access_token: response.access_token,
+            refresh_token: response.refresh_token,
+        };
+    }
 }
 
 export const authRepositoryApi = new AuthRepositoryApiImpl();

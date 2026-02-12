@@ -33,7 +33,7 @@ export default function DrawerNavigator() {
         headerTitleStyle: {
           fontWeight: "600",
         },
-        drawerStyle: { backgroundColor: COLORS.darkBg, width: 300 },
+        drawerStyle: { backgroundColor: COLORS.white, width: 300 },
         drawerType: "slide",
         overlayColor: "rgba(0, 0, 0, 0.5)",
       }}

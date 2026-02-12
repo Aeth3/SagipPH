@@ -8,9 +8,26 @@ import {
 } from "@env";
 
 let accessTokenProvider = async () => null;
+let refreshSessionProvider = null;
+let onRefreshFailed = null;
 
 export const setAccessTokenProvider = (provider) => {
   accessTokenProvider = typeof provider === "function" ? provider : async () => null;
+};
+
+/**
+ * Register a function that refreshes the session and returns a Result.
+ * Expected shape: async () => { ok: true, value: { access_token } } | { ok: false, error }
+ */
+export const setRefreshSessionProvider = (provider) => {
+  refreshSessionProvider = typeof provider === "function" ? provider : null;
+};
+
+/**
+ * Register a callback invoked when token refresh fails (e.g. force logout).
+ */
+export const setOnRefreshFailed = (callback) => {
+  onRefreshFailed = typeof callback === "function" ? callback : null;
 };
 
 const normalizeBaseTarget = (value) => {
@@ -92,5 +109,74 @@ apiClient.interceptors.response.use(
     return Promise.reject(normalizedError);
   }
 );
+
+// --- 401 Token Refresh Interceptor ---
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+apiClient.interceptors.response.use(null, async (error) => {
+  const originalRequest = error.config;
+
+  // Only attempt refresh on 401, and not for refresh/auth endpoints themselves
+  const isAuthEndpoint =
+    originalRequest?.url?.includes("/auth/refresh") ||
+    originalRequest?.url?.includes("/auth/otp/") ||
+    originalRequest?.url?.includes("/auth/logout");
+
+  if (error.status !== 401 || originalRequest._retry || isAuthEndpoint || !refreshSessionProvider) {
+    return Promise.reject(error);
+  }
+
+  // If already refreshing, queue this request to retry after refresh completes
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    }).then((token) => {
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+      return apiClient(originalRequest);
+    });
+  }
+
+  originalRequest._retry = true;
+  isRefreshing = true;
+
+  try {
+    const result = await refreshSessionProvider();
+
+    if (!result?.ok) {
+      processQueue(new Error("Refresh failed"));
+      if (typeof onRefreshFailed === "function") {
+        onRefreshFailed();
+      }
+      return Promise.reject(error);
+    }
+
+    const newToken = result.value?.access_token;
+    processQueue(null, newToken);
+
+    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+    return apiClient(originalRequest);
+  } catch (refreshError) {
+    processQueue(refreshError);
+    if (typeof onRefreshFailed === "function") {
+      onRefreshFailed();
+    }
+    return Promise.reject(error);
+  } finally {
+    isRefreshing = false;
+  }
+});
 
 export default apiClient;
