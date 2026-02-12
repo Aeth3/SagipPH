@@ -12,8 +12,13 @@
         {
             "id": "loanlist",
             "type": "loanlist"
+        },
+        {
+            "id": "floatingaddbutton",
+            "type": "floatingaddbutton"
         }
     ],
+    "addButtonAlignment": "right",
     "filters": [
         {
             "key": "barangay",

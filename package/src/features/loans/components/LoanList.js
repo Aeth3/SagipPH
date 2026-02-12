@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { COLORS, FONTS, SIZES } from "package/src/legacyApp";
-
+import EmptyState from "../../../../components/ui/EmptyState";
 const STATUS_COLORS = {
   approved: COLORS.success,
   pending: COLORS.warning,
@@ -61,6 +61,7 @@ const LoanList = ({ loans = [], onPressItem }) => {
         <LoanCard loan={item} onPress={onPressItem} />
       )}
       showsVerticalScrollIndicator={false}
+      ListEmptyComponent={<EmptyState />}
     />
   );
 };
