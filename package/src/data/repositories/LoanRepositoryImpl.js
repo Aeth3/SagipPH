@@ -1,76 +1,69 @@
 import { LoanRepository } from "../../domain/repositories/LoanRepository";
-import { requestOfflineFirst } from "../../infra/http/offlineHttp";
 import { Loan } from "../../domain/entities/Loan";
+import * as localDS from "../datasources/LoanLocalDataSource";
+import { syncLoans } from "../../services/LoanSyncService";
 
-const BASE = "/loans";
-
-/** Convert camelCase keys to snake_case for the DB layer. */
-const toSnakeCase = (obj) => {
-    if (!obj || typeof obj !== "object") return obj;
-    return Object.fromEntries(
-        Object.entries(obj).map(([k, v]) => [
-            k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`),
-            v,
-        ])
-    );
-};
-
+/**
+ * Offline‑first LoanRepository implementation.
+ *
+ * ──── Reads  → always from SQLite (instant, works offline)
+ * ──── Writes → SQLite first, then trigger background sync to Supabase
+ */
 export class LoanRepositoryImpl extends LoanRepository {
+
+    /** Fire‑and‑forget sync — errors are swallowed so callers aren't affected. */
+    _triggerSync() {
+        syncLoans().catch(() => undefined);
+    }
+
+    // ── Reads ──────────────────────────────────────────────────────────
+
     async getLoans() {
-        const res = await requestOfflineFirst({ method: "GET", url: BASE }, { cacheReads: true });
-
-        // Handle normal array responses or offline-cached arrays (which may be
-        // returned as an object due to offlineHttp spreading). Normalize to array.
-        let items = [];
-        if (Array.isArray(res)) items = res;
-        else if (res && typeof res === "object") {
-            // cached arrays may be returned as an object with numeric keys and a
-            // length property (offlineHttp spreads arrays). Recover the array.
-            if (typeof res.length === "number" && res.length >= 0) {
-                items = Array.from({ length: res.length }, (_, i) => res[i]);
-            }
-        }
-
-        return items.map((r) => Loan.fromDTO(r));
+        const rows = await localDS.getAllLoans();
+        // Kick off a background sync so fresh remote data arrives soon.
+        this._triggerSync();
+        return rows.map((r) => Loan.fromDTO(r));
     }
 
     async getLoanById(id) {
-        const res = await requestOfflineFirst({ method: "GET", url: `${BASE}?id=eq.${id}` }, { cacheReads: true });
-        const row = Array.isArray(res) ? res[0] : res;
+        // `id` may be either a local_id or server_id – try both.
+        let row = await localDS.getLoanByLocalId(id);
+        if (!row) row = await localDS.getLoanByServerId(id);
         if (!row) return null;
         return Loan.fromDTO(row);
     }
 
+    // ── Writes (SQLite first, sync later) ──────────────────────────────
+
     async createLoan(loanData) {
-        const res = await requestOfflineFirst(
-            { method: "POST", url: BASE, data: toSnakeCase(loanData) },
-            { queueOfflineWrites: true, cacheReads: false }
-        );
-        // If queued, return the queued metadata so caller can indicate pending state.
-        if (res?.queued) return res;
-        // Supabase PostgREST returns an array; extract the first element.
-        const row = Array.isArray(res) ? res[0] : res;
+        const row = await localDS.insertLoan(loanData);
+        this._triggerSync();
         return Loan.fromDTO(row);
     }
 
     async deleteLoan(id) {
-        const res = await requestOfflineFirst(
-            { method: "DELETE", url: `${BASE}?id=eq.${id}` },
-            { queueOfflineWrites: true }
-        );
-        return res?.queued ? res : { success: true };
+        let row = await localDS.getLoanByLocalId(id);
+        if (!row) row = await localDS.getLoanByServerId(id);
+        if (row) {
+            await localDS.deleteLoanByLocalId(row.local_id);
+        }
+        // TODO: queue a remote delete when sync supports it
+        return { success: true };
     }
 
     async updateLoan(id, loanData) {
-        const res = await requestOfflineFirst(
-            { method: "PATCH", url: `${BASE}?id=eq.${id}`, data: toSnakeCase(loanData) },
-            { queueOfflineWrites: true, cacheReads: false }
-        );
-        if (res?.queued) return res;
-        const row = Array.isArray(res) ? res[0] : res;
-        return Loan.fromDTO(row);
+        let row = await localDS.getLoanByLocalId(id);
+        if (!row) row = await localDS.getLoanByServerId(id);
+        if (!row) throw new Error(`Loan ${id} not found`);
+
+        // Mark sync_status back to pending so the change gets pushed.
+        const updated = await localDS.updateLoanByLocalId(row.local_id, {
+            ...loanData,
+            sync_status: "pending",
+        });
+        this._triggerSync();
+        return Loan.fromDTO(updated);
     }
-    // mapping handled by `Loan.fromDTO`
 }
 
 export const loanRepository = new LoanRepositoryImpl();

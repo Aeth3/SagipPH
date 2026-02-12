@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faChevronDown, faChevronUp, faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
 import { useNavigationState } from '@react-navigation/native';
 import ProfileHeader from "./ProfileHeader";
-import CustomModal from "./Modal";
+import AlertModal from "./AlertModal";
 import { COLORS } from "package/src/legacyApp"
 
 export default function CustomDrawer({ navigation, logout }) {
@@ -93,19 +93,23 @@ export default function CustomDrawer({ navigation, logout }) {
                 </TouchableOpacity>
             </View>
 
-            <CustomModal
+            <AlertModal
                 visible={showLogoutModal}
                 title="Confirm Logout"
                 message="Are you sure you want to log out?"
-                confirmText="Logout"
-                cancelText="Cancel"
-                placement="center"
-                onClose={() => setShowLogoutModal(false)}
-                onConfirm={async () => {
-                    setShowLogoutModal(false);
-                    await logout();
-                }}
-                confirmButtonColor="#d00"
+                type="confirm"
+                buttons={[
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Logout",
+                        style: "destructive",
+                        onPress: async () => {
+                            setShowLogoutModal(false);
+                            await logout();
+                        },
+                    },
+                ]}
+                onDismiss={() => setShowLogoutModal(false)}
             />
         </>
     );

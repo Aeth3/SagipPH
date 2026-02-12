@@ -15,5 +15,6 @@ export default function LoansScreen() {
         </View>
         {builderProps.filterSheet.Sheet}
         {builderProps.loanFormModal}
+        {builderProps.alertModal}
     </Screen>
 }

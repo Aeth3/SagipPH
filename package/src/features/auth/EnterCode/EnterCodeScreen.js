@@ -1,7 +1,7 @@
 import React from "react";
 import { LegacyEnterCodePage } from "package/src/legacyApp";
 import { useEnterCodeController } from "./controllers/EnterCodeController";
-import CustomModal from "../../../../components/ui/Modal";
+import AlertModal from "../../../../components/ui/AlertModal";
 
 export default function EnterCodeScreen() {
   const { handleSubmit, handleBack, handleResend, modalInfo, handleConfirm } = useEnterCodeController();
@@ -13,13 +13,13 @@ export default function EnterCodeScreen() {
         handleBack={handleBack}
         handleResend={handleResend}
       />
-      <CustomModal
+      <AlertModal
         visible={modalInfo.show}
         title={modalInfo.title}
         message={modalInfo.message}
-        onConfirm={handleConfirm}
-        onClose={handleConfirm}
-        showCancel={false}
+        type="info"
+        buttons={[{ text: "OK", onPress: handleConfirm }]}
+        onDismiss={handleConfirm}
       />
     </>
   );

@@ -12,7 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SvgXml } from 'react-native-svg';
 import Toast from 'react-native-simple-toast';
-import CustomModal from '../../../../components/ui/Modal';
+import AlertModal from '../../../../components/ui/AlertModal';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, SIZES, IMAGES, ICONS } from '../../constants/theme';
 import CustomButton from '../../components/CustomButton';
@@ -174,12 +174,13 @@ const SignIn = ({
 
 
             {/* Modal */}
-            <CustomModal
+            <AlertModal
                 visible={modalInfo.show}
                 title={modalInfo.title}
                 message={modalInfo.message}
-                onConfirm={handleConfirm}
-                showCancel={false}
+                type="error"
+                buttons={[{ text: "OK", onPress: handleConfirm }]}
+                onDismiss={handleConfirm}
             />
         </>
     );

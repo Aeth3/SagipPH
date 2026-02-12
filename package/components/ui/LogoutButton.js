@@ -1,9 +1,12 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useAlertModal } from '../../src/presentation/hooks/useAlertModal';
 
 export default function LogoutButton({ onLogout }) {
+    const { showAlert, alertModal } = useAlertModal();
+
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             "Logout",
             "Are you sure you want to logout?",
             [
@@ -14,9 +17,12 @@ export default function LogoutButton({ onLogout }) {
     };
 
     return (
-        <TouchableOpacity style={styles.button} onPress={handleLogout}>
-            <Text style={styles.text}>Logout</Text>
-        </TouchableOpacity>
+        <>
+            <TouchableOpacity style={styles.button} onPress={handleLogout}>
+                <Text style={styles.text}>Logout</Text>
+            </TouchableOpacity>
+            {alertModal}
+        </>
     );
 }
 

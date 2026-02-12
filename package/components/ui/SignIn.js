@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native"
 import Screen from "../layout/Screen"
 import config from "../../auth-components/Login/config.json"
-import CustomModal from "./Modal"
+import AlertModal from "./AlertModal"
 
 export default function SignIn({ handleLogin = () => { }, handleSignUp = () => { }, modalInfo, handleConfirm, appName }) {
     // dynamically create state from LoginFields
@@ -65,12 +65,13 @@ export default function SignIn({ handleLogin = () => { }, handleSignUp = () => {
             <TouchableOpacity style={styles.createButton} onPress={onSignUp}>
                 <Text style={styles.createText}>Create new account</Text>
             </TouchableOpacity>
-            <CustomModal
+            <AlertModal
                 visible={modalInfo.show}
                 title={modalInfo.title}
                 message={modalInfo.message}
-                onConfirm={handleConfirm}
-                showCancel={false}
+                type="error"
+                buttons={[{ text: "OK", onPress: handleConfirm }]}
+                onDismiss={handleConfirm}
             />
         </Screen>
     )

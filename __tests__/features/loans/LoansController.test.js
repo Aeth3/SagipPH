@@ -1,13 +1,17 @@
 import React from "react";
 import renderer, { act } from "react-test-renderer";
-import { Alert } from "react-native";
 import { useLoansController } from "../../../package/src/features/loans/controllers/LoansController";
 
-jest.mock("react-native", () => {
-    const RN = jest.requireActual("react-native");
-    RN.Alert.alert = jest.fn();
-    return RN;
-});
+const mockShowAlert = jest.fn();
+const mockHideAlert = jest.fn();
+
+jest.mock("../../../package/src/presentation/hooks/useAlertModal", () => ({
+    useAlertModal: () => ({
+        showAlert: mockShowAlert,
+        hideAlert: mockHideAlert,
+        alertModal: null,
+    }),
+}));
 
 jest.mock("package/src/legacyApp", () => ({
     COLORS: {
@@ -40,6 +44,12 @@ jest.mock("../../../package/src/domain/entities/Loan", () => ({
 }));
 
 jest.mock("../../../package/src/features/loans/components/LoanFormModal", () => "LoanFormModal");
+jest.mock("../../../package/components/ui/AlertModal", () => "AlertModal");
+
+const mockShowSnackbarError = jest.fn();
+jest.mock("../../../package/lib/helpers", () => ({
+    ShowSnackbarError: (...args) => mockShowSnackbarError(...args),
+}));
 
 const { getLoans, createLoan, updateLoan, deleteLoan } =
     require("../../../package/src/composition/loans");
@@ -77,12 +87,14 @@ describe("useLoansController", () => {
         });
         const ctrl = await setupHook();
         expect(ctrl.builderProps.error).toBe("Server down");
+        expect(mockShowSnackbarError).toHaveBeenCalledWith("Server down");
     });
 
     it("sets error when getLoans throws", async () => {
         getLoans.mockRejectedValue(new Error("Network fail"));
         const ctrl = await setupHook();
         expect(ctrl.builderProps.error).toBe("Network fail");
+        expect(mockShowSnackbarError).toHaveBeenCalledWith("Network fail");
     });
 
     it("returns config in hook result", async () => {

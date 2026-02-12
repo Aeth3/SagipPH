@@ -1,13 +1,35 @@
+/**
+ * Tests for the refactored offline‑first LoanRepositoryImpl.
+ *
+ * The repository now reads from SQLite (LoanLocalDataSource) and triggers
+ * background sync via LoanSyncService.
+ */
+
+let mockLocalDS;
+let mockSyncLoans;
+
 const loadLoanRepositoryModule = () => {
     jest.resetModules();
 
-    const mockRequestOfflineFirst = jest.fn();
+    mockLocalDS = {
+        getAllLoans: jest.fn().mockResolvedValue([]),
+        getLoanByLocalId: jest.fn().mockResolvedValue(null),
+        getLoanByServerId: jest.fn().mockResolvedValue(null),
+        insertLoan: jest.fn().mockResolvedValue({ local_id: "new-id" }),
+        updateLoanByLocalId: jest.fn().mockResolvedValue({ local_id: "id" }),
+        deleteLoanByLocalId: jest.fn().mockResolvedValue(true),
+    };
+
+    mockSyncLoans = jest.fn().mockResolvedValue({});
 
     jest.doMock(
-        "../../../package/src/infra/http/offlineHttp",
-        () => ({
-            requestOfflineFirst: mockRequestOfflineFirst,
-        })
+        "../../../package/src/data/datasources/LoanLocalDataSource",
+        () => mockLocalDS
+    );
+
+    jest.doMock(
+        "../../../package/src/services/LoanSyncService",
+        () => ({ syncLoans: mockSyncLoans })
     );
 
     jest.doMock(
@@ -24,142 +46,150 @@ const loadLoanRepositoryModule = () => {
         moduleUnderTest = require("../../../package/src/data/repositories/LoanRepositoryImpl");
     });
 
-    return { moduleUnderTest, mockRequestOfflineFirst };
+    return { moduleUnderTest };
 };
 
-describe("LoanRepositoryImpl", () => {
+// ── getLoans ────────────────────────────────────────────────────────────
+
+describe("LoanRepositoryImpl (offline-first)", () => {
     describe("getLoans", () => {
-        it("maps array response to Loan entities", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("reads from local SQLite and returns mapped Loan entities", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue([
-                { id: 1, borrower: "Alice" },
-                { id: 2, borrower: "Bob" },
+            mockLocalDS.getAllLoans.mockResolvedValue([
+                { local_id: "a", borrower: "Alice" },
+                { local_id: "b", borrower: "Bob" },
             ]);
 
             const result = await repo.getLoans();
-            expect(mockRequestOfflineFirst).toHaveBeenCalledWith(
-                { method: "GET", url: "/loans" },
-                { cacheReads: true }
-            );
+
+            expect(mockLocalDS.getAllLoans).toHaveBeenCalled();
             expect(result).toHaveLength(2);
             expect(result[0]._mapped).toBe(true);
         });
 
-        it("handles offline-cached object-style arrays", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("triggers background sync", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue({
-                0: { id: 1 },
-                1: { id: 2 },
-                length: 2,
-            });
+            mockLocalDS.getAllLoans.mockResolvedValue([]);
+            await repo.getLoans();
 
-            const result = await repo.getLoans();
-            expect(result).toHaveLength(2);
-        });
-
-        it("returns empty array when response is empty", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
-            const repo = new moduleUnderTest.LoanRepositoryImpl();
-
-            mockRequestOfflineFirst.mockResolvedValue([]);
-            const result = await repo.getLoans();
-            expect(result).toEqual([]);
+            // syncLoans is fire-and-forget; just verify it was called
+            expect(mockSyncLoans).toHaveBeenCalled();
         });
     });
 
+    // ── getLoanById ──────────────────────────────────────────────────────
+
     describe("getLoanById", () => {
-        it("returns mapped loan when found", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("finds by local_id first", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue([{ id: 1, borrower: "Alice" }]);
-            const result = await repo.getLoanById(1);
+            mockLocalDS.getLoanByLocalId.mockResolvedValue({ local_id: "abc", borrower: "Alice" });
+
+            const result = await repo.getLoanById("abc");
+
+            expect(result._mapped).toBe(true);
+            expect(mockLocalDS.getLoanByLocalId).toHaveBeenCalledWith("abc");
+        });
+
+        it("falls back to server_id lookup", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
+            const repo = new moduleUnderTest.LoanRepositoryImpl();
+
+            mockLocalDS.getLoanByLocalId.mockResolvedValue(null);
+            mockLocalDS.getLoanByServerId.mockResolvedValue({ server_id: "srv-1", borrower: "Bob" });
+
+            const result = await repo.getLoanById("srv-1");
+
+            expect(mockLocalDS.getLoanByServerId).toHaveBeenCalledWith("srv-1");
             expect(result._mapped).toBe(true);
         });
 
-        it("returns null when not found", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("returns null when not found anywhere", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue([]);
-            const result = await repo.getLoanById(999);
+            const result = await repo.getLoanById("missing");
+
             expect(result).toBeNull();
         });
     });
 
+    // ── createLoan ──────────────────────────────────────────────────────
+
     describe("createLoan", () => {
-        it("sends snake_case data and returns mapped loan", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("inserts into SQLite and triggers sync", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue([{ id: 10, borrower: "C" }]);
-            const result = await repo.createLoan({ borrower: "C", dueDate: "2026-01-01" });
-            expect(mockRequestOfflineFirst).toHaveBeenCalledWith(
-                expect.objectContaining({ method: "POST", url: "/loans" }),
-                expect.objectContaining({ queueOfflineWrites: true })
-            );
+            const inserted = { local_id: "new-id", borrower: "Carol" };
+            mockLocalDS.insertLoan.mockResolvedValue(inserted);
+
+            const result = await repo.createLoan({ borrower: "Carol", amount: 5000 });
+
+            expect(mockLocalDS.insertLoan).toHaveBeenCalledWith({ borrower: "Carol", amount: 5000 });
             expect(result._mapped).toBe(true);
-        });
-
-        it("returns queued metadata when offline", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
-            const repo = new moduleUnderTest.LoanRepositoryImpl();
-
-            mockRequestOfflineFirst.mockResolvedValue({ queued: true });
-            const result = await repo.createLoan({ borrower: "C" });
-            expect(result).toEqual({ queued: true });
+            expect(mockSyncLoans).toHaveBeenCalled();
         });
     });
+
+    // ── updateLoan ──────────────────────────────────────────────────────
 
     describe("updateLoan", () => {
-        it("sends PATCH with id in url", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("updates locally and marks sync_status as pending", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue([{ id: 1, borrower: "Updated" }]);
-            const result = await repo.updateLoan(1, { borrower: "Updated" });
-            expect(mockRequestOfflineFirst).toHaveBeenCalledWith(
-                expect.objectContaining({ method: "PATCH", url: "/loans?id=eq.1" }),
-                expect.objectContaining({ queueOfflineWrites: true })
+            mockLocalDS.getLoanByLocalId.mockResolvedValue({ local_id: "abc" });
+            mockLocalDS.updateLoanByLocalId.mockResolvedValue({ local_id: "abc", borrower: "Updated" });
+
+            const result = await repo.updateLoan("abc", { borrower: "Updated" });
+
+            expect(mockLocalDS.updateLoanByLocalId).toHaveBeenCalledWith(
+                "abc",
+                expect.objectContaining({ borrower: "Updated", sync_status: "pending" })
             );
             expect(result._mapped).toBe(true);
+            expect(mockSyncLoans).toHaveBeenCalled();
         });
 
-        it("returns queued metadata when offline", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("throws when loan is not found", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue({ queued: true });
-            const result = await repo.updateLoan(1, { borrower: "X" });
-            expect(result).toEqual({ queued: true });
+            await expect(repo.updateLoan("missing", {})).rejects.toThrow("not found");
         });
     });
 
+    // ── deleteLoan ──────────────────────────────────────────────────────
+
     describe("deleteLoan", () => {
-        it("sends DELETE with id in url", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("deletes from local DB by local_id", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue({});
-            const result = await repo.deleteLoan(1);
-            expect(mockRequestOfflineFirst).toHaveBeenCalledWith(
-                expect.objectContaining({ method: "DELETE", url: "/loans?id=eq.1" }),
-                expect.objectContaining({ queueOfflineWrites: true })
-            );
+            mockLocalDS.getLoanByLocalId.mockResolvedValue({ local_id: "abc" });
+
+            const result = await repo.deleteLoan("abc");
+
+            expect(mockLocalDS.deleteLoanByLocalId).toHaveBeenCalledWith("abc");
             expect(result).toEqual({ success: true });
         });
 
-        it("returns queued metadata when offline", async () => {
-            const { moduleUnderTest, mockRequestOfflineFirst } = loadLoanRepositoryModule();
+        it("looks up by server_id as fallback", async () => {
+            const { moduleUnderTest } = loadLoanRepositoryModule();
             const repo = new moduleUnderTest.LoanRepositoryImpl();
 
-            mockRequestOfflineFirst.mockResolvedValue({ queued: true });
-            const result = await repo.deleteLoan(1);
-            expect(result).toEqual({ queued: true });
+            mockLocalDS.getLoanByLocalId.mockResolvedValue(null);
+            mockLocalDS.getLoanByServerId.mockResolvedValue({ local_id: "loc-from-srv", server_id: "srv-1" });
+
+            await repo.deleteLoan("srv-1");
+
+            expect(mockLocalDS.deleteLoanByLocalId).toHaveBeenCalledWith("loc-from-srv");
         });
     });
 });

@@ -43,18 +43,28 @@ export const ContextProvider = ({ children }) => {
   const initDatabase = async () => {
     try {
       // DROP TABLE
-      // dropTable('tbl_household_records')
+      // dropTable('tbl_loans');
 
       // CREATE TABLE
-      // await createTable(
-      //   'tbl_sample',
-      //   `
-      //   id INTEGER PRIMARY KEY AUTOINCREMENT,
-      //   `
-      // );
+      await createTable(
+        'tbl_loans',
+        `
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        borrower TEXT NOT NULL,
+        amount REAL NOT NULL,
+        due_date TEXT NOT NULL,
+        status TEXT NOT NULL,
+        term INTEGER NOT NULL,
+        sync_status TEXT NOT NULL DEFAULT 'pending',
+        sync_error TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        `
+      );
 
       // LOG table columns
-      // logTableColumns('tbl_household_records')
+      logTableColumns('tbl_loans')
 
       setIsDbReady(true);
       console.log("Database initialized.");

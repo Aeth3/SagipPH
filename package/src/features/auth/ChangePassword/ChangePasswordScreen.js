@@ -1,7 +1,7 @@
 import React from "react";
 import { LegacyChangePasswordPage } from "package/src/legacyApp";
 import { useChangePasswordController } from "./controllers/ChangePasswordController";
-import CustomModal from "../../../../components/ui/Modal";
+import AlertModal from "../../../../components/ui/AlertModal";
 
 export default function ChangePasswordScreen() {
   const { handleSubmit, handleSignIn, modalInfo, handleConfirm } = useChangePasswordController();
@@ -12,13 +12,13 @@ export default function ChangePasswordScreen() {
         handleSubmit={handleSubmit}
         handleSignIn={handleSignIn}
       />
-      <CustomModal
+      <AlertModal
         visible={modalInfo.show}
         title={modalInfo.title}
         message={modalInfo.message}
-        onConfirm={handleConfirm}
-        onClose={handleConfirm}
-        showCancel={false}
+        type="info"
+        buttons={[{ text: "OK", onPress: handleConfirm }]}
+        onDismiss={handleConfirm}
       />
     </>
   );

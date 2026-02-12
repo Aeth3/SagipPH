@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native"
 import config from "../../config.json"
 import Screen from "../layout/Screen"
-import CustomModal from "./Modal"
+import AlertModal from "./AlertModal"
 
 export default function SignUp({ handleSignUp = () => { }, handleHaveAccount, loading, modalInfo, handleConfirm }) {
     const [formData, setFormData] = useState(
@@ -78,7 +78,14 @@ export default function SignUp({ handleSignUp = () => { }, handleHaveAccount, lo
                     <Text style={styles.loginLink}>Already have an account?</Text>
                 </TouchableOpacity>
             </View>
-            <CustomModal visible={modalInfo.show} title={modalInfo.title} message={modalInfo.message} onConfirm={handleConfirm} showCancel={false} />
+            <AlertModal
+                visible={modalInfo.show}
+                title={modalInfo.title}
+                message={modalInfo.message}
+                type="info"
+                buttons={[{ text: "OK", onPress: handleConfirm }]}
+                onDismiss={handleConfirm}
+            />
         </Screen>
     )
 }

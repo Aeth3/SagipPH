@@ -1,7 +1,7 @@
 import React from "react";
 import { LegacyForgotPasswordPage } from "package/src/legacyApp";
 import { useForgotPasswordController } from "./controllers/ForgotPasswordController";
-import CustomModal from "../../../../components/ui/Modal";
+import AlertModal from "../../../../components/ui/AlertModal";
 
 export default function ForgotPasswordScreen() {
   const { handleSubmit, handleBack, modalInfo, handleConfirm } = useForgotPasswordController();
@@ -9,13 +9,13 @@ export default function ForgotPasswordScreen() {
   return (
     <>
       <LegacyForgotPasswordPage handleSubmit={handleSubmit} handleBack={handleBack} />
-      <CustomModal
+      <AlertModal
         visible={modalInfo.show}
         title={modalInfo.title}
         message={modalInfo.message}
-        onConfirm={handleConfirm}
-        onClose={handleConfirm}
-        showCancel={false}
+        type="info"
+        buttons={[{ text: "OK", onPress: handleConfirm }]}
+        onDismiss={handleConfirm}
       />
     </>
   );

@@ -119,7 +119,8 @@ export const uploadFile = async (filePath, apiUrl, authToken) => {
     }
 };
 
-const requestStoragePermission = async () => {
+const requestStoragePermission = async ({ showAlert } = {}) => {
+    const alertFn = showAlert || Alert.alert;
     let permission;
 
     if (Platform.OS === 'android') {
@@ -147,7 +148,7 @@ const requestStoragePermission = async () => {
         if (result === RESULTS.GRANTED) return true;
 
         if (result === RESULTS.BLOCKED) {
-            Alert.alert(
+            alertFn(
                 "Permission Denied",
                 "Storage permission is blocked. Open settings to allow access.",
                 [{ text: "Open Settings", onPress: openSettings }, { text: "Cancel", style: "cancel" }]
@@ -167,7 +168,8 @@ const requestStoragePermission = async () => {
 };
 
 // Save JSON to Downloads
-export const saveJsonToDownloads = async (jsonObject) => {
+export const saveJsonToDownloads = async (jsonObject, { showAlert } = {}) => {
+    const alertFn = showAlert || Alert.alert;
     const uniqueId = Date.now().toString();
 
     const jsonContent = JSON.stringify(jsonObject, null, 2);
@@ -176,10 +178,10 @@ export const saveJsonToDownloads = async (jsonObject) => {
     try {
         await RNFS.writeFile(path, jsonContent, 'utf8');
         console.log('JSON file saved at:', path);
-        Alert.alert("Success", `File saved in Downloads!\nPath: ${path}`);
+        alertFn("Success", `File saved in Downloads!\nPath: ${path}`);
     } catch (error) {
         console.error('Error saving file:', error);
-        Alert.alert("Error", "Failed to save file");
+        alertFn("Error", "Failed to save file");
     }
 };
 
@@ -195,7 +197,8 @@ export function VotersLoadingScreen({ message }) {
     );
 }
 
-export function decryptAES(payload, keyString) {
+export function decryptAES(payload, keyString, { showAlert } = {}) {
+    const alertFn = showAlert || Alert.alert;
     try {
         // Restore base64 format from URL-safe
         let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
@@ -228,7 +231,7 @@ export function decryptAES(payload, keyString) {
         console.log("✅ Decrypted JSON:", parsed);
         return parsed;
     } catch (e) {
-        Alert.alert("QR is not applicable")
+        alertFn("QR is not applicable")
         return null;
     }
 }

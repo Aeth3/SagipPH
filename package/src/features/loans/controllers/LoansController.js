@@ -1,4 +1,3 @@
-import { Alert } from "react-native";
 import { COLORS } from "package/src/legacyApp";
 import { FiltersSheet } from "../../../../components/ui/SearchBarWithFilter";
 import config from "../config.json"
@@ -6,6 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import { getLoans, createLoan, updateLoan, deleteLoan } from "../../../composition/loans";
 import { Loan } from "../../../domain/entities/Loan";
 import LoanFormModal from "../components/LoanFormModal";
+import { useAlertModal } from "../../../presentation/hooks/useAlertModal";
+import { ShowSnackbarError } from "../../../../lib/helpers";
 
 const emptyForm = {
     borrower: "",
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 export const useLoansController = () => {
+    const { showAlert, alertModal } = useAlertModal();
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -40,10 +42,14 @@ export const useLoansController = () => {
             if (result.ok) {
                 setLoans(result.value);
             } else {
-                setError(result.error?.message ?? "Failed to load loans");
+                const msg = result.error?.message ?? "Failed to load loans";
+                setError(msg);
+                ShowSnackbarError(msg);
             }
         } catch (err) {
-            setError(err?.message ?? "Unexpected error");
+            const msg = err?.message ?? "Unexpected error";
+            setError(msg);
+            ShowSnackbarError(msg);
         } finally {
             setLoading(false);
         }
@@ -79,7 +85,7 @@ export const useLoansController = () => {
     const handleSave = async () => {
         const validation = Loan.validateInput(formValues);
         if (!validation.ok) {
-            Alert.alert("Validation", validation.error.message);
+            showAlert("Validation", validation.error.message);
             return;
         }
         const payload = validation.value;
@@ -95,7 +101,7 @@ export const useLoansController = () => {
                     setLoans((prev) => [created, ...prev]);
                     closeForm();
                 } else {
-                    Alert.alert("Error", result.error?.message ?? "Failed to create loan");
+                    showAlert("Error", result.error?.message ?? "Failed to create loan");
                 }
             } else if (editingLoanId != null) {
                 const result = await updateLoan(editingLoanId, payload);
@@ -108,11 +114,11 @@ export const useLoansController = () => {
                     );
                     closeForm();
                 } else {
-                    Alert.alert("Error", result.error?.message ?? "Failed to update loan");
+                    showAlert("Error", result.error?.message ?? "Failed to update loan");
                 }
             }
         } catch (err) {
-            Alert.alert("Error", err?.message ?? "Failed to save loan");
+            showAlert("Error", err?.message ?? "Failed to save loan");
         } finally {
             setSaving(false);
         }
@@ -120,7 +126,7 @@ export const useLoansController = () => {
 
     const confirmDelete = (loan) => {
         if (!loan?.id) return;
-        Alert.alert("Delete loan", "This action cannot be undone.", [
+        showAlert("Delete loan", "This action cannot be undone.", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Delete",
@@ -132,10 +138,10 @@ export const useLoansController = () => {
                         if (result.ok) {
                             setLoans((prev) => prev.filter((item) => item.id !== loan.id));
                         } else {
-                            Alert.alert("Error", result.error?.message ?? "Failed to delete loan");
+                            showAlert("Error", result.error?.message ?? "Failed to delete loan");
                         }
                     } catch (err) {
-                        Alert.alert("Error", err?.message ?? "Failed to delete loan");
+                        showAlert("Error", err?.message ?? "Failed to delete loan");
                     } finally {
                         setSaving(false);
                     }
@@ -145,7 +151,7 @@ export const useLoansController = () => {
     };
 
     const handleLongPressLoan = (loan) => {
-        Alert.alert("Loan actions", "Choose an action.", [
+        showAlert("Loan actions", "Choose an action.", [
             { text: "Edit", onPress: () => openEdit(loan) },
             { text: "Delete", style: "destructive", onPress: () => confirmDelete(loan) },
             { text: "Cancel", style: "cancel" },
@@ -180,6 +186,7 @@ export const useLoansController = () => {
                 saving={saving}
             />
         ),
+        alertModal,
     };
 
     return { config, builderProps };

@@ -22,7 +22,11 @@ const resolveBaseUrl = () => {
   const target = normalizeBaseTarget(HTTP_BASE_TARGET);
 
   if (target === "supabase" && SUPABASE_URL) {
-    return SUPABASE_URL;
+    // Supabase JS client adds /rest/v1 automatically for DB queries, but our
+    // custom axios client needs it explicitly so table endpoints resolve
+    // correctly (e.g. /loans → SUPABASE_URL/rest/v1/loans).
+    const base = SUPABASE_URL.replace(/\/+$/, "");
+    return base.endsWith("/rest/v1") ? base : `${base}/rest/v1`;
   }
 
   if (target === "api" && API_BASE_URL) {

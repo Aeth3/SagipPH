@@ -14,7 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SvgXml } from 'react-native-svg';
 import Toast from 'react-native-simple-toast';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import CustomModal from '../../../../components/ui/Modal';
+import AlertModal from '../../../../components/ui/AlertModal';
 import { COLORS, FONTS, SIZES, IMAGES, ICONS } from '../../constants/theme';
 import CustomButton from '../../components/CustomButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -183,12 +183,13 @@ const CreateAccount = ({
         </KeyboardAwareScrollView>
       </SafeAreaView>
 
-      <CustomModal
+      <AlertModal
         visible={modalInfo.show}
         title={modalInfo.title}
         message={modalInfo.message}
-        onConfirm={handleConfirm}
-        showCancel={false}
+        type="info"
+        buttons={[{ text: "OK", onPress: handleConfirm }]}
+        onDismiss={handleConfirm}
       />
     </>
   );

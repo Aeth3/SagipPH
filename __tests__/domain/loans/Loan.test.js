@@ -1,4 +1,4 @@
-import { Loan, LOAN_STATUSES } from "../../../package/src/domain/entities/Loan";
+import { Loan, LOAN_STATUSES, SYNC_STATUSES } from "../../../package/src/domain/entities/Loan";
 
 describe("Loan entity", () => {
     // ── validateInput ──────────────────────────────────────────────────────
@@ -185,6 +185,8 @@ describe("Loan entity", () => {
         it("converts entity back to snake_case DTO", () => {
             const loan = new Loan({
                 id: 1,
+                localId: "loc-1",
+                serverId: "srv-1",
                 borrower: "Alice",
                 amount: 5000,
                 term: 12,
@@ -192,10 +194,13 @@ describe("Loan entity", () => {
                 status: "active",
                 createdAt: "2025-01-01",
                 updatedAt: "2025-02-01",
+                syncStatus: "synced",
             });
 
             expect(loan.toDTO()).toEqual({
                 id: 1,
+                local_id: "loc-1",
+                server_id: "srv-1",
                 borrower: "Alice",
                 amount: 5000,
                 term: 12,
@@ -203,6 +208,8 @@ describe("Loan entity", () => {
                 status: "active",
                 created_at: "2025-01-01",
                 updated_at: "2025-02-01",
+                sync_status: "synced",
+                sync_error: null,
             });
         });
     });
@@ -216,6 +223,81 @@ describe("Loan entity", () => {
 
         it("returns false by default", () => {
             expect(new Loan().isPending()).toBe(false);
+        });
+    });
+
+    // ── Sync status helpers ────────────────────────────────────────────────
+
+    describe("sync status helpers", () => {
+        it("isSynced returns true when synced", () => {
+            expect(new Loan({ syncStatus: SYNC_STATUSES.SYNCED }).isSynced()).toBe(true);
+        });
+
+        it("isSyncPending returns true for default/pending", () => {
+            expect(new Loan().isSyncPending()).toBe(true);
+            expect(new Loan({ syncStatus: SYNC_STATUSES.PENDING }).isSyncPending()).toBe(true);
+        });
+
+        it("isSyncFailed returns true when failed", () => {
+            expect(new Loan({ syncStatus: SYNC_STATUSES.FAILED }).isSyncFailed()).toBe(true);
+        });
+    });
+
+    // ── fromDTO sync fields ────────────────────────────────────────────────
+
+    describe("fromDTO with sync fields", () => {
+        it("maps sync_status and sync_error from snake_case", () => {
+            const loan = Loan.fromDTO({ sync_status: "failed", sync_error: "timeout" });
+            expect(loan.syncStatus).toBe("failed");
+            expect(loan.syncError).toBe("timeout");
+        });
+
+        it("maps local_id and server_id", () => {
+            const loan = Loan.fromDTO({ local_id: "loc-1", server_id: "srv-1" });
+            expect(loan.localId).toBe("loc-1");
+            expect(loan.serverId).toBe("srv-1");
+        });
+
+        it("defaults syncStatus to pending when absent", () => {
+            const loan = Loan.fromDTO({ borrower: "X" });
+            expect(loan.syncStatus).toBe(SYNC_STATUSES.PENDING);
+        });
+    });
+
+    // ── toRemoteDTO ────────────────────────────────────────────────────────
+
+    describe("toRemoteDTO", () => {
+        it("excludes local-only fields", () => {
+            const loan = new Loan({
+                id: 1,
+                localId: "loc-1",
+                serverId: "srv-1",
+                borrower: "Alice",
+                amount: 5000,
+                term: 12,
+                dueDate: "2026-06-01",
+                status: "active",
+                syncStatus: "synced",
+                syncError: null,
+            });
+
+            const dto = loan.toRemoteDTO();
+            expect(dto).toEqual({
+                id: "srv-1",
+                borrower: "Alice",
+                amount: 5000,
+                term: 12,
+                due_date: "2026-06-01",
+                status: "active",
+            });
+            expect(dto).not.toHaveProperty("local_id");
+            expect(dto).not.toHaveProperty("sync_status");
+        });
+
+        it("omits id when serverId is null", () => {
+            const loan = new Loan({ borrower: "Bob", amount: 100, dueDate: "2026-01-01", status: "pending" });
+            const dto = loan.toRemoteDTO();
+            expect(dto).not.toHaveProperty("id");
         });
     });
 });
