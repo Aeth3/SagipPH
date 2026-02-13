@@ -1,120 +1,46 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEffect, useRef } from "react";
+import Snackbar from "react-native-snackbar";
 import { useOfflineStatus } from "../hooks/useOfflineStatus";
 import { COLORS } from "../../legacyApp";
 
-const SNACKBAR_HEIGHT = 48;
-const SLIDE_DURATION = 300;
-const AUTO_HIDE_DELAY = 3000;
-
 /**
- * Top-positioned snackbar that listens to network connectivity changes.
+ * Headless component that listens to network connectivity changes
+ * and displays a Snackbar when the device goes offline or comes back online.
  *
  * Mount once near the root of the app (e.g. in Main.js).
- * Slides down from behind the status bar when the connection state changes.
+ * Renders nothing — purely side-effect driven.
  */
 export default function NetworkStatusSnackbar() {
-  const { isOnline } = useOfflineStatus();
-  const insets = useSafeAreaInsets();
-  const prevOnline = useRef(isOnline);
-  const isFirstRender = useRef(true);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const hideTimer = useRef(null);
-  const [banner, setBanner] = useState(null); // { text, bg }
+    const { isOnline } = useOfflineStatus();
+    const prevOnline = useRef(isOnline);
+    const isFirstRender = useRef(true);
 
-  const show = (text, bg, autoHide) => {
-    setBanner({ text, bg });
+    useEffect(() => {
+        // Skip the very first render so we don't flash a snackbar on app launch.
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            prevOnline.current = isOnline;
+            return;
+        }
 
-    Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: SLIDE_DURATION,
-      useNativeDriver: true,
-    }).start();
+        // Only show when the status actually changes.
+        if (isOnline === prevOnline.current) return;
+        prevOnline.current = isOnline;
 
-    clearTimeout(hideTimer.current);
-    if (autoHide) {
-      hideTimer.current = setTimeout(hide, AUTO_HIDE_DELAY);
-    }
-  };
+        if (isOnline) {
+            Snackbar.show({
+                text: "You are back online",
+                backgroundColor: COLORS.success,
+                duration: Snackbar.LENGTH_SHORT,
+            });
+        } else {
+            Snackbar.show({
+                text: "You are offline. Some features may be unavailable.",
+                backgroundColor: COLORS.danger,
+                duration: Snackbar.LENGTH_LONG,
+            });
+        }
+    }, [isOnline]);
 
-  const hide = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: SLIDE_DURATION,
-      useNativeDriver: true,
-    }).start(() => setBanner(null));
-  };
-
-  useEffect(() => {
-    // Skip the very first render so we don't flash a banner on app launch.
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      prevOnline.current = isOnline;
-      return;
-    }
-
-    // Only show when the status actually changes.
-    if (isOnline === prevOnline.current) return;
-    prevOnline.current = isOnline;
-
-    if (isOnline) {
-      show("You are back online", COLORS.success, true);
-    } else {
-      // Stay visible while offline — no auto-hide.
-      show(
-        "You are offline. Some features may be unavailable.",
-        COLORS.danger,
-        false,
-      );
-    }
-
-    return () => clearTimeout(hideTimer.current);
-  }, [isOnline]);
-
-  if (!banner) return null;
-
-  const totalHeight = insets.top + SNACKBAR_HEIGHT;
-  const translateY = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-totalHeight, 0],
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top,
-          backgroundColor: banner.bg,
-          transform: [{ translateY }],
-        },
-      ]}
-    >
-      <Text style={styles.text}>{banner.text}</Text>
-    </Animated.View>
-  );
+    return null;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "auto",
-    minHeight: SNACKBAR_HEIGHT,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  text: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-});
