@@ -21,7 +21,7 @@ import LinearGradient from 'react-native-linear-gradient';
 const DATA = [
     {
         title: 'Handa sa Oras ng Sakuna.',
-        desc: 'Matalinong babala at mabilis na tulong para sa kaligtasan ng bawat pamayanan.',
+        desc: 'Matalinong babala at mabilis na tulong para sa kaligtasan ng bawat isa.',
     }
 ]
 
