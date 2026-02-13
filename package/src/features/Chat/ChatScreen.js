@@ -9,12 +9,13 @@ import {
     Animated,
     KeyboardAvoidingView,
     Platform,
+    Image,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
 import ChatHeader from "../../../components/ui/ChatHeader";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
-import { COLORS, FONTS, SIZES } from "package/src/legacyApp";
+import { COLORS, FONTS, IMAGES, SIZES } from "package/src/legacyApp";
 import useChatController from "./controllers/ChatController";
 
 const SUGGESTION_CHIPS = [
@@ -47,7 +48,11 @@ function MessageBubble({ message }) {
             ]}
         >
             {!isUser && (
-                <Text style={styles.bubbleSender}>SagipPH AI</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Image source={IMAGES.appLogo} style={styles.bubbleImage} />
+                    <Text style={styles.bubbleSender}>SagipPH AI</Text>
+                </View>
+
             )}
             <Text
                 style={[
@@ -171,7 +176,21 @@ function ChatInput({ value, onChangeText, onSend, disabled }) {
 
 export default function ChatScreen({ route }) {
     const [message, setMessage] = useState("");
-    const { messages, isLoading, send, scrollViewRef } = useChatController();
+    const { messages, isLoading, isReady, send, clearChat, loadChat, scrollViewRef } = useChatController();
+
+    // When "New Chat" is tapped in the drawer, route.params.newChat changes
+    useEffect(() => {
+        if (route?.params?.newChat) {
+            clearChat();
+        }
+    }, [route?.params?.newChat]);
+
+    // When a chat history item is tapped, load that conversation
+    useEffect(() => {
+        if (route?.params?.loadChatId) {
+            loadChat(route.params.loadChatId);
+        }
+    }, [route?.params?.loadChatId]);
 
     const hasMessages = messages.length > 0;
 
@@ -246,7 +265,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-
+    bubbleImage: {
+        width: 24,
+        height: 24,
+    },
     // Scroll
     scrollArea: {
         flex: 1,
@@ -366,7 +388,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: COLORS.themePrimary,
+        backgroundColor: COLORS.primary2,
         opacity: 0.7,
     },
     typingText: {
@@ -419,7 +441,7 @@ const styles = StyleSheet.create({
         borderRadius: 19,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: COLORS.themePrimary,
+        backgroundColor: COLORS.primary2,
     },
     sendButtonDisabled: {
         backgroundColor: "#D1D5DB",

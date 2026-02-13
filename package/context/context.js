@@ -44,7 +44,8 @@ export const ContextProvider = ({ children }) => {
     try {
       // DROP TABLE
       // dropTable('tbl_loans');
-
+      // dropTable('tbl_chats');
+      // dropTable('tbl_messages');
       // CREATE TABLE
       await createTable(
         'tbl_loans',
@@ -63,8 +64,35 @@ export const ContextProvider = ({ children }) => {
         `
       );
 
+      // CREATE CHATS TABLE
+      await createTable(
+        'tbl_chats',
+        `
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        title TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        `
+      );
+
+      // CREATE MESSAGES TABLE
+      await createTable(
+        'tbl_messages',
+        `
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        chat_id INTEGER NOT NULL,
+        sender TEXT NOT NULL CHECK(sender IN ('user', 'bot', 'system')),
+        content TEXT NOT NULL,
+        timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (chat_id) REFERENCES tbl_chats(local_id) ON DELETE CASCADE
+        `
+      );
+
       // LOG table columns
       logTableColumns('tbl_loans')
+      logTableColumns('tbl_chats')
+      logTableColumns('tbl_messages')
 
       setIsDbReady(true);
       console.log("Database initialized.");

@@ -1,11 +1,14 @@
+import { COLORS } from "package/src/legacyApp";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function ProfileHeader({ name = 'John Doe', email = 'johndoe@email.com', uri = "https://i.pravatar.cc/150?img=15", propStyles }) {
     return <View style={[styles.header, propStyles]}>
-        <Image
-            source={{ uri }}
-            style={styles.avatar}
-        />
+        <View style={styles.avatarRing}>
+            <Image
+                source={{ uri }}
+                style={styles.avatar}
+            />
+        </View>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.email}>{email}</Text>
     </View>
@@ -13,28 +16,31 @@ export default function ProfileHeader({ name = 'John Doe', email = 'johndoe@emai
 
 const styles = StyleSheet.create({
     header: {
-        paddingTop: 50,
-        paddingBottom: 20,
-        backgroundColor: "#f2f2f7",
+        paddingTop: 40,
+        paddingBottom: 24,
         alignItems: "center",
-        borderRadius: 10,
-        elevation: 3,
-        marginHorizontal: 10,
+    },
+    avatarRing: {
+        padding: 3,
+        borderRadius: 48,
+        borderWidth: 2,
+        borderColor: COLORS.primary2,
+        marginBottom: 14,
     },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        marginBottom: 10,
+        width: 88,
+        height: 88,
+        borderRadius: 44,
     },
     name: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: "#111",
+        fontSize: 20,
+        fontWeight: "700",
+        color: COLORS.primary2,
+        letterSpacing: 0.2,
     },
     email: {
-        fontSize: 13,
-        color: "#555",
-        marginTop: 2,
+        fontSize: 14,
+        color: "#888",
+        marginTop: 4,
     },
 })

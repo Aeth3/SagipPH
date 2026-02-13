@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { drawerRoutes } from "../../routes/drawerRoutes";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
@@ -8,13 +8,46 @@ import { faChevronDown, faChevronUp, faRightFromBracket } from "@fortawesome/fre
 import { useNavigationState } from '@react-navigation/native';
 import ProfileHeader from "./ProfileHeader";
 import AlertModal from "./AlertModal";
-import { COLORS } from "package/src/legacyApp"
+import { COLORS } from "package/src/legacyApp";
+import { getChats } from "../../src/composition/chat"
 
 export default function CustomDrawer({ navigation, logout }) {
     const [expanded, setExpanded] = useState({});
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showAllHistory, setShowAllHistory] = useState(false);
+    const [chatHistory, setChatHistory] = useState([]);
+
+    const MAX_VISIBLE_HISTORY = 5;
     const state = useNavigationState((state) => state);
     const currentRoute = state.routes[state.index]?.name;
+
+    // Fetch chat history whenever the drawer opens
+    const loadChatHistory = useCallback(async () => {
+        try {
+            const result = await getChats();
+            if (result.ok) {
+                // Filter out chats that still have the default title (no messages sent yet)
+                const chatsWithMessages = result.value.filter(
+                    (c) => c.title && c.title !== "SagipPH Chat"
+                );
+                setChatHistory(chatsWithMessages);
+            }
+        } catch (err) {
+            console.warn("[CustomDrawer] Failed to load chat history:", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadChatHistory();
+    }, [loadChatHistory]);
+
+    // Refresh chat history each time the "ChatHistory" dropdown is expanded
+    useEffect(() => {
+        if (expanded["ChatHistory"]) {
+            loadChatHistory();
+        }
+    }, [expanded["ChatHistory"], loadChatHistory]);
+
     return (
         <>
             <ProfileHeader propStyles={{ marginTop: 20, backgroundColor: COLORS.white }} />
@@ -45,33 +78,81 @@ export default function CustomDrawer({ navigation, logout }) {
                                 </TouchableOpacity>
                             )}
 
-                            {/* Children */}
+                            {/* Children — dynamic (chat history) or static */}
                             {hasChildren && expanded[route.name] && (
                                 <View style={styles.childContainer}>
-                                    {route.children.map((child) => {
-                                        const isActive = currentRoute === child.name;
-                                        return (
-                                            <TouchableOpacity
-                                                key={child.name}
-                                                style={[styles.childItem, isActive && styles.activeChildItem]}
-                                                onPress={() => navigation.navigate(child.name)}
-                                            >
-                                                <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primary2 }]]}>
-                                                    {child.label}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                                    {route.dynamicChildren ? (
+                                        chatHistory.length > 0 ? (
+                                            <>
+                                                {chatHistory.slice(0, MAX_VISIBLE_HISTORY).map((chat) => (
+                                                    <TouchableOpacity
+                                                        key={chat.id}
+                                                        style={styles.childItem}
+                                                        onPress={() => {
+                                                            navigation.navigate("ChatStack", {
+                                                                screen: "Chat",
+                                                                params: { loadChatId: chat.id },
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Text
+                                                            style={[styles.childText, { color: COLORS.placeholderColor }]}
+                                                            numberOfLines={1}
+                                                        >
+                                                            {chat.title}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                                {chatHistory.length > MAX_VISIBLE_HISTORY && (
+                                                    <TouchableOpacity
+                                                        style={styles.seeMoreButton}
+                                                        onPress={() => setShowAllHistory(true)}
+                                                    >
+                                                        <Text style={styles.seeMoreText}>See more ({chatHistory.length - MAX_VISIBLE_HISTORY})</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <Text style={[styles.childText, { color: COLORS.placeholderColor, paddingHorizontal: 12, paddingVertical: 8 }]}>
+                                                No chat history yet
+                                            </Text>
+                                        )
+                                    ) : (
+                                        route.children.map((child) => {
+                                            const isActive = currentRoute === child.name;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={child.name}
+                                                    style={[styles.childItem, isActive && styles.activeChildItem]}
+                                                    onPress={() => navigation.navigate(child.name)}
+                                                >
+                                                    <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primary2 }]]}>
+                                                        {child.label}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
                                 </View>
                             )}
 
                             {/* Top-level items (no children) */}
                             {!hasChildren && (
                                 <TouchableOpacity
-                                    style={[styles.parentItem, currentRoute === route.name && styles.activeItem]}
-                                    onPress={() => navigation.navigate(route.name)}
+                                    style={[styles.parentItem, !route.disableSelected && currentRoute === route.name && styles.activeItem]}
+                                    onPress={() => {
+                                        if (route.disableSelected) {
+                                            // "New Chat" — navigate with a unique timestamp to trigger clearChat
+                                            navigation.navigate(route.name, {
+                                                screen: "Chat",
+                                                params: { newChat: Date.now() },
+                                            });
+                                        } else {
+                                            navigation.navigate(route.name);
+                                        }
+                                    }}
                                 >
-                                    <Text style={[styles.parentText, currentRoute === route.name && styles.activeText]}>
+                                    <Text style={[styles.parentText, !route.disableSelected && currentRoute === route.name && styles.activeText]}>
                                         {route.label}
                                     </Text>
                                 </TouchableOpacity>
@@ -92,6 +173,46 @@ export default function CustomDrawer({ navigation, logout }) {
                     <Text style={[styles.logoutText, { color: COLORS.danger }]}>Logout</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Chat History Modal */}
+            <Modal
+                visible={showAllHistory}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowAllHistory(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Chat History</Text>
+                            <TouchableOpacity onPress={() => setShowAllHistory(false)}>
+                                <Text style={styles.modalClose}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={chatHistory}
+                            keyExtractor={(item) => String(item.id)}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.modalItem}
+                                    onPress={() => {
+                                        setShowAllHistory(false);
+                                        navigation.navigate("ChatStack", {
+                                            screen: "Chat",
+                                            params: { loadChatId: item.id },
+                                        });
+                                    }}
+                                >
+                                    <Text style={styles.modalItemText} numberOfLines={1}>
+                                        {item.title}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            ItemSeparatorComponent={() => <View style={styles.modalSeparator} />}
+                        />
+                    </View>
+                </View>
+            </Modal>
 
             <AlertModal
                 visible={showLogoutModal}
@@ -127,7 +248,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 4,
     },
-    parentText: { fontSize: 16, fontWeight: "600", color: "#aaa" },
+    parentText: { fontSize: 16, fontWeight: "600", color: COLORS.primary2 },
     childContainer: { paddingLeft: 20, marginTop: 5 },
     childItem: {
         paddingVertical: 10,
@@ -156,5 +277,61 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
         marginLeft: 8,
+    },
+    seeMoreButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        marginBottom: 4,
+    },
+    seeMoreText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: COLORS.primary2,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContainer: {
+        width: "85%",
+        maxHeight: "70%",
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        overflow: "hidden",
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#ddd",
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: COLORS.primary2,
+    },
+    modalClose: {
+        fontSize: 20,
+        color: "#999",
+        padding: 4,
+    },
+    modalItem: {
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+    },
+    modalItemText: {
+        fontSize: 15,
+        color: "#333",
+    },
+    modalSeparator: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: "#eee",
+        marginHorizontal: 16,
     },
 });

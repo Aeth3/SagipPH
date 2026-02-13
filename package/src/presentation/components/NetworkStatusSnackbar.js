@@ -1,0 +1,46 @@
+import { useEffect, useRef } from "react";
+import Snackbar from "react-native-snackbar";
+import { useOfflineStatus } from "../hooks/useOfflineStatus";
+import { COLORS } from "../../legacyApp";
+
+/**
+ * Headless component that listens to network connectivity changes
+ * and displays a Snackbar when the device goes offline or comes back online.
+ *
+ * Mount once near the root of the app (e.g. in Main.js).
+ * Renders nothing — purely side-effect driven.
+ */
+export default function NetworkStatusSnackbar() {
+    const { isOnline } = useOfflineStatus();
+    const prevOnline = useRef(isOnline);
+    const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        // Skip the very first render so we don't flash a snackbar on app launch.
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            prevOnline.current = isOnline;
+            return;
+        }
+
+        // Only show when the status actually changes.
+        if (isOnline === prevOnline.current) return;
+        prevOnline.current = isOnline;
+
+        if (isOnline) {
+            Snackbar.show({
+                text: "You are back online",
+                backgroundColor: COLORS.success,
+                duration: Snackbar.LENGTH_SHORT,
+            });
+        } else {
+            Snackbar.show({
+                text: "You are offline. Some features may be unavailable.",
+                backgroundColor: COLORS.danger,
+                duration: Snackbar.LENGTH_LONG,
+            });
+        }
+    }, [isOnline]);
+
+    return null;
+}

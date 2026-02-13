@@ -9,6 +9,7 @@ import {
     startLoanSyncOnReconnect,
     stopLoanSyncOnReconnect,
 } from "./src/services/loanSyncOnReconnect";
+import NetworkStatusSnackbar from "./src/presentation/components/NetworkStatusSnackbar";
 
 export default function Main() {
     useEffect(() => {
@@ -22,5 +23,6 @@ export default function Main() {
 
     return <ContextProvider>
         <RootNavigator />
+        <NetworkStatusSnackbar />
     </ContextProvider>
 }

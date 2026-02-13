@@ -6,7 +6,7 @@ import LeafletMap from "../components/ui/LeafletMap";
 import { StackNavigator } from "../navigators/AppNavigator";
 import Entry from "@features/auth/Home/Entry";
 import LoansScreen from "@features/loans/LoansScreen"
-
+import ChatHistoryScreen from "@features/ChatHistory/ChatHistoryScreen";
 export const drawerRoutes = [
     // {
     //     name: "DashboardDropdown", // parent dropdown
@@ -32,6 +32,7 @@ export const drawerRoutes = [
         component: StackNavigator,
         icon: "home", // optional FontAwesome icon name
         hasHeader: false,
+        disableSelected: true
         // children: [
         //     {
         //         name: "HomeScreen",
@@ -67,6 +68,13 @@ export const drawerRoutes = [
     //     icon: "loans", // optional FontAwesome icon name
     //     hasHeader: false,
     // }
-
+    {
+        name: "ChatHistory",
+        label: "Chat History",
+        icon: "home",
+        hasHeader: false,
+        dynamicChildren: true,
+        children: [],
+    }
 ];
 

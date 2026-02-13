@@ -1,14 +1,19 @@
 import React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import { COLORS } from "package/src/legacyApp";
+import NotificationIcon from "./NotificationIcon";
 
-export default function ChatHeader() {
+export default function ChatHeader({ notificationCount = 0, onNotificationPress }) {
     return (
         <View style={styles.header}>
             <View style={styles.headerLeft}>
                 <Text style={styles.brandText}>SagipPH</Text>
             </View>
             <View style={styles.headerRight}>
+                <NotificationIcon
+                    count={notificationCount}
+                    onPress={onNotificationPress}
+                />
                 <View style={styles.avatar}>
                     <Text style={styles.avatarText}>AJ</Text>
                 </View>

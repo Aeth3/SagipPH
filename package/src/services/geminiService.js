@@ -167,6 +167,33 @@ export async function sendMessage(userMessage) {
 }
 
 /**
+ * Generate a short chat title from the user's first message and the AI reply.
+ * Uses a one-shot (stateless) Gemini call so it doesn't pollute the
+ * conversation history.
+ *
+ * @param {string} userMessage  – the user's first message
+ * @param {string} aiReply      – the assistant's response
+ * @returns {Promise<string>}   – a concise title (≤ 6 words)
+ */
+export async function generateChatTitle(userMessage, aiReply) {
+    try {
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+
+        const prompt =
+            `Summarize this conversation into a short chat title (max 6 words, no quotes, no punctuation at the end).\n\n` +
+            `User: ${userMessage}\nAssistant: ${aiReply}`;
+
+        const res = await model.generateContent(prompt);
+        const title = res.response.text().trim().replace(/[."]+$/g, "");
+        return title || "SagipPH Chat";
+    } catch (error) {
+        console.warn("[geminiService] generateChatTitle error:", error);
+        return "SagipPH Chat";
+    }
+}
+
+/**
  * Reset the chat session (e.g. when user wants a fresh conversation).
  * Also resets to the primary model for the next conversation.
  */
