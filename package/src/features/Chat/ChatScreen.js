@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Text,
     View,
@@ -6,12 +6,16 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    Image,
+    Animated,
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
+import ChatHeader from "../../../components/ui/ChatHeader";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { COLORS, FONTS, SIZES } from "package/src/legacyApp";
+import useChatController from "./controllers/ChatController";
 
 const SUGGESTION_CHIPS = [
     { id: 1, icon: "🆘", label: "Report emergency" },
@@ -20,6 +24,8 @@ const SUGGESTION_CHIPS = [
     { id: 4, icon: "🌊", label: "Weather updates" },
     { id: 5, icon: "💬", label: "Ask anything" },
 ];
+
+/* ── Sub-components ────────────────────────────────────── */
 
 function SuggestionChip({ icon, label, onPress }) {
     return (
@@ -30,23 +36,107 @@ function SuggestionChip({ icon, label, onPress }) {
     );
 }
 
-function Header() {
+function MessageBubble({ message }) {
+    const isUser = message.role === "user";
     return (
-        <View style={styles.header}>
-            <View style={styles.headerLeft}>
-                <Text style={styles.brandText}>SagipPH</Text>
-            </View>
-            <View style={styles.headerRight}>
-
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>AJ</Text>
-                </View>
-            </View>
+        <View
+            style={[
+                styles.bubble,
+                isUser ? styles.bubbleUser : styles.bubbleAssistant,
+                message.isError && styles.bubbleError,
+            ]}
+        >
+            {!isUser && (
+                <Text style={styles.bubbleSender}>SagipPH AI</Text>
+            )}
+            <Text
+                style={[
+                    styles.bubbleText,
+                    isUser ? styles.bubbleTextUser : styles.bubbleTextAssistant,
+                ]}
+            >
+                {message.text}
+            </Text>
         </View>
     );
 }
 
-function ChatInput({ value, onChangeText, onSend }) {
+function BouncingDot({ delay }) {
+    const anim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.delay(delay),
+                Animated.timing(anim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(anim, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ]),
+        );
+        loop.start();
+        return () => loop.stop();
+    }, []);
+
+    const translateY = anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, -6],
+    });
+
+    const scale = anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.25],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                styles.dot,
+                { transform: [{ translateY }, { scale }] },
+            ]}
+        />
+    );
+}
+
+function TypingIndicator() {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 350,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    return (
+        <Animated.View
+            style={[
+                styles.bubble,
+                styles.bubbleAssistant,
+                styles.typingBubble,
+                { opacity: fadeAnim },
+            ]}
+        >
+            <View style={styles.typingRow}>
+                <View style={styles.dotsContainer}>
+                    <BouncingDot delay={0} />
+                    <BouncingDot delay={150} />
+                    <BouncingDot delay={300} />
+                </View>
+                <Text style={styles.typingText}>SagipPH AI is thinking…</Text>
+            </View>
+        </Animated.View>
+    );
+}
+
+function ChatInput({ value, onChangeText, onSend, disabled }) {
     return (
         <View style={styles.inputWrapper}>
             <View style={styles.inputContainer}>
@@ -62,25 +152,36 @@ function ChatInput({ value, onChangeText, onSend }) {
                     multiline={false}
                     returnKeyType="send"
                     onSubmitEditing={onSend}
+                    editable={!disabled}
                 />
-                <TouchableOpacity style={styles.inputAction}>
-                    <Text style={styles.inputActionIcon}>🎤</Text>
+                <TouchableOpacity
+                    style={[styles.sendButton, !value.trim() && styles.sendButtonDisabled]}
+                    onPress={onSend}
+                    disabled={!value.trim() || disabled}
+                    activeOpacity={0.7}
+                >
+                    <FontAwesomeIcon icon={faPaperPlane} size={16} color={COLORS.white} />
                 </TouchableOpacity>
             </View>
         </View>
     );
 }
 
+/* ── Main Screen ───────────────────────────────────────── */
+
 export default function ChatScreen({ route }) {
     const [message, setMessage] = useState("");
+    const { messages, isLoading, send, scrollViewRef } = useChatController();
+
+    const hasMessages = messages.length > 0;
 
     const handleChipPress = (label) => {
-        setMessage(label);
+        send(label);
     };
 
     const handleSend = () => {
-        if (message.trim()) {
-            // TODO: handle send
+        if (message.trim() && !isLoading) {
+            send(message);
             setMessage("");
         }
     };
@@ -92,36 +193,49 @@ export default function ChatScreen({ route }) {
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
-                <Header />
+                <ChatHeader />
 
                 <ScrollView
+                    ref={scrollViewRef}
                     style={styles.scrollArea}
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Greeting */}
-                    <View style={styles.greetingSection}>
-                        <Text style={styles.greetingHi}>Hi AJ</Text>
-                        <Text style={styles.greetingMain}>Where should{"\n"}we start?</Text>
-                    </View>
+                    {!hasMessages && (
+                        <>
+                            {/* Greeting — shown only before first message */}
+                            <View style={styles.greetingSection}>
+                                <Text style={styles.greetingHi}>Hi AJ</Text>
+                                <Text style={styles.greetingMain}>Where should{"\n"}we start?</Text>
+                            </View>
 
-                    {/* Suggestion chips */}
-                    <View style={styles.chipsContainer}>
-                        {SUGGESTION_CHIPS.map((chip) => (
-                            <SuggestionChip
-                                key={chip.id}
-                                icon={chip.icon}
-                                label={chip.label}
-                                onPress={() => handleChipPress(chip.label)}
-                            />
-                        ))}
-                    </View>
+                            {/* Suggestion chips */}
+                            <View style={styles.chipsContainer}>
+                                {SUGGESTION_CHIPS.map((chip) => (
+                                    <SuggestionChip
+                                        key={chip.id}
+                                        icon={chip.icon}
+                                        label={chip.label}
+                                        onPress={() => handleChipPress(chip.label)}
+                                    />
+                                ))}
+                            </View>
+                        </>
+                    )}
+
+                    {/* Conversation */}
+                    {messages.map((msg) => (
+                        <MessageBubble key={msg.id} message={msg} />
+                    ))}
+
+                    {isLoading && <TypingIndicator />}
                 </ScrollView>
 
                 <ChatInput
                     value={message}
                     onChangeText={setMessage}
                     onSend={handleSend}
+                    disabled={isLoading}
                 />
             </KeyboardAvoidingView>
         </Screen>
@@ -131,55 +245,6 @@ export default function ChatScreen({ route }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-
-    // Header
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-    },
-    headerLeft: {
-        marginLeft: 40,
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    brandText: {
-        fontSize: 22,
-        fontFamily: "Poppins-SemiBold",
-        color: COLORS.primary2,
-    },
-    headerRight: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-    },
-    badge: {
-        backgroundColor: COLORS.primayLight2,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 12,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: "700",
-        color: COLORS.primary2,
-        letterSpacing: 0.5,
-    },
-    avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: COLORS.primary2,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    avatarText: {
-        color: COLORS.white,
-        fontWeight: "700",
-        fontSize: 14,
     },
 
     // Scroll
@@ -233,6 +298,84 @@ const styles = StyleSheet.create({
         fontFamily: "NunitoSans-Regular",
     },
 
+    // Message bubbles
+    bubble: {
+        maxWidth: "85%",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 20,
+        marginBottom: 12,
+    },
+    bubbleUser: {
+        alignSelf: "flex-end",
+        backgroundColor: COLORS.primary2,
+        borderBottomRightRadius: 6,
+    },
+    bubbleAssistant: {
+        alignSelf: "flex-start",
+        backgroundColor: "#F3F4F6",
+        borderBottomLeftRadius: 6,
+    },
+    bubbleError: {
+        backgroundColor: COLORS.redLight,
+    },
+    bubbleSender: {
+        fontSize: 11,
+        fontFamily: "Poppins-SemiBold",
+        color: COLORS.themePrimary,
+        marginBottom: 4,
+    },
+    bubbleText: {
+        fontSize: 15,
+        lineHeight: 22,
+        fontFamily: "NunitoSans-Regular",
+    },
+    bubbleTextUser: {
+        color: COLORS.white,
+    },
+    bubbleTextAssistant: {
+        color: COLORS.title,
+    },
+
+    // Typing indicator
+    typingBubble: {
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        backgroundColor: "#EEF0F4",
+        borderRadius: 20,
+        borderBottomLeftRadius: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+        elevation: 1,
+    },
+    typingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    dotsContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        height: 20,
+        justifyContent: "center",
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: COLORS.themePrimary,
+        opacity: 0.7,
+    },
+    typingText: {
+        fontSize: 13,
+        color: COLORS.text,
+        fontFamily: "NunitoSans-Regular",
+        fontStyle: "italic",
+    },
+
     // Input
     inputWrapper: {
         paddingHorizontal: 16,
@@ -269,5 +412,21 @@ const styles = StyleSheet.create({
     inputActionIcon: {
         fontSize: 20,
         color: COLORS.text,
+    },
+    sendButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: COLORS.themePrimary,
+    },
+    sendButtonDisabled: {
+        backgroundColor: "#D1D5DB",
+    },
+    sendIcon: {
+        fontSize: 18,
+        color: COLORS.white,
+        fontWeight: "bold",
     },
 });

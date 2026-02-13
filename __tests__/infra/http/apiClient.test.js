@@ -5,6 +5,8 @@ const loadApiClientModule = () => {
   let responseOnFulfilled;
   let responseOnRejected;
 
+  let responseUseCallCount = 0;
+
   const mockClient = {
     request: jest.fn(),
     interceptors: {
@@ -15,8 +17,13 @@ const loadApiClientModule = () => {
       },
       response: {
         use: jest.fn((onFulfilled, onRejected) => {
-          responseOnFulfilled = onFulfilled;
-          responseOnRejected = onRejected;
+          // Only capture from the first response interceptor registration
+          // (the normalizer). The second call is the 401 refresh interceptor.
+          if (responseUseCallCount === 0) {
+            responseOnFulfilled = onFulfilled;
+            responseOnRejected = onRejected;
+          }
+          responseUseCallCount++;
         }),
       },
     },
