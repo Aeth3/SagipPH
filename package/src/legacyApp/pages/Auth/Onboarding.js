@@ -1,5 +1,6 @@
 
 import React, { useRef } from 'react';
+import SendSMS from 'react-native-sms';
 import {
     Animated,
     BackHandler,
@@ -119,6 +120,7 @@ const Onboarding = (props) => {
                                     title="PROCEED"
                                     onPress={() => props.navigation.navigate('PhoneEntry')}
                                 />
+                                
                             </View>
                             {/* <View>
                                 <TouchableOpacity

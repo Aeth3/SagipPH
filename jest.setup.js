@@ -56,6 +56,66 @@ jest.mock("react-native-sqlite-storage", () => ({
 
 jest.mock("react-native-fs", () => ({}));
 
+jest.mock("react-native-snackbar", () => {
+  const Snackbar = {
+    show: jest.fn(),
+    dismiss: jest.fn(),
+    LENGTH_SHORT: 1,
+    LENGTH_LONG: 2,
+  };
+  return {
+    __esModule: true,
+    default: Snackbar,
+    ...Snackbar,
+  };
+});
+
+jest.mock("react-native-simple-toast", () => {
+  const Toast = {
+    show: jest.fn(),
+    showWithGravity: jest.fn(),
+    showWithGravityAndOffset: jest.fn(),
+    SHORT: 0,
+    LONG: 1,
+    TOP: 49,
+    BOTTOM: 81,
+    CENTER: 17,
+  };
+  return {
+    __esModule: true,
+    default: Toast,
+    ...Toast,
+  };
+});
+
+jest.mock("react-native-permissions", () => ({
+  check: jest.fn(async () => "granted"),
+  request: jest.fn(async () => "granted"),
+  openSettings: jest.fn(async () => {}),
+  PERMISSIONS: {
+    ANDROID: {
+      READ_EXTERNAL_STORAGE: "android.permission.READ_EXTERNAL_STORAGE",
+      MANAGE_EXTERNAL_STORAGE: "android.permission.MANAGE_EXTERNAL_STORAGE",
+    },
+    IOS: {},
+  },
+  RESULTS: {
+    GRANTED: "granted",
+    DENIED: "denied",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+    LIMITED: "limited",
+  },
+}));
+
+jest.mock(
+  "react-native-scanbot-sdk",
+  () => ({
+    performOcr: jest.fn(async () => ({ status: "OK", plainText: "" })),
+  }),
+  { virtual: true }
+);
+
 jest.mock("react-native-webview", () => ({
   WebView: (props) => {
     const React = require("react");

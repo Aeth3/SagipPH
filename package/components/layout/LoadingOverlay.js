@@ -1,3 +1,4 @@
+import { COLORS } from "package/src/legacyApp"
 import React, { useEffect, useMemo, useRef } from "react"
 import { View, Text, ActivityIndicator, Animated, Easing, StyleSheet, Dimensions } from "react-native"
 import LinearGradient from "react-native-linear-gradient"
@@ -117,9 +118,8 @@ export default function LoadingOverlay({ visible, text = "Please wait..." }) {
           style={styles.loaderCardInner}
         >
           <View style={styles.loaderRow}>
-            <ActivityIndicator size="large" color="#2563EB" />
             <View style={styles.textGroup}>
-              <Text style={styles.title}>Loading</Text>
+              <ActivityIndicator size="large" color={COLORS.primary2} />
               <Text style={styles.text}>{text}</Text>
             </View>
           </View>
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loaderCard: {
-    width: Math.min(width * 0.84, 340),
+    width: Math.min(width * 0.4, 340),
     borderRadius: 18,
     shadowColor: "#000",
     shadowOpacity: 0.24,
@@ -175,17 +175,18 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   textGroup: {
+    alignItems: "center",
     flex: 1,
   },
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.primary2,
     marginBottom: 4,
   },
   text: {
     fontSize: 14,
-    color: "#374151",
+    color: COLORS.primary2,
     lineHeight: 20,
   },
 })

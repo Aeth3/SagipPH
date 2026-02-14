@@ -534,3 +534,9 @@ export const decodeSafeToken = (safeToken) => {
 export const toBase64 = (str) => {
     return Buffer.from(str, "utf8").toString("base64");
 };
+
+export const generateDateTimeId = (prefix = "user") => {
+    const ts = new Date().toISOString().replace(/[-:.TZ]/g, ""); // YYYYMMDDHHmmssSSS
+    const rand = Math.random().toString(36).slice(2, 8); // 6 chars
+    return `${prefix}_${ts}_${rand}`;
+};

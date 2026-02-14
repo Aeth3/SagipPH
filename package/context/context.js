@@ -3,8 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { clearSession, getSession } from "../services/storageService";
 import { createTable, dropTable } from '../lib/dbCreator';
 import { insertNewHouseholds, logTableColumns } from '../lib/dbHelper';
-import { IS_DEMO_MODE } from "../src/composition/authSession";
-;
+import { IS_DEMO_MODE, getClientToken } from "../src/composition/authSession";
 
 const GlobalContext = createContext();
 
@@ -24,7 +23,7 @@ export const ContextProvider = ({ children }) => {
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        await Promise.all([initDatabase(), restoreSession()]);
+        await Promise.all([initDatabase(), restoreSession(), initClientToken()]);
       } catch (e) {
         console.error("Bootstrap failed:", e);
         setModalInfo({
@@ -126,6 +125,18 @@ export const ContextProvider = ({ children }) => {
       setAuth(null);
     }
   };
+
+  const initClientToken = async () => {
+    try {
+      const result = await getClientToken();
+      if (!result?.ok) {
+        throw new Error(result?.error?.message || "Failed to initialize client token");
+      }
+      console.log("Client token initialized.");
+    } catch (error) {
+      console.error("Get Client Token Error:", error);
+    }
+  }
 
   return (
     <GlobalContext.Provider value={{

@@ -6,15 +6,29 @@ export const useOtpVerificationController = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const phone = route.params?.phone;
-    const { confirmOtp, requestOtp } = useAuth();
+    const { confirmOtp, requestOtp, register, login } = useAuth();
     const { modalInfo, setModalInfo } = useGlobal();
 
+    // const handleVerify = async (code) => {
+    //     const result = await confirmOtp(phone, code);
+    //     if (!result.success) {
+    //         setModalInfo({ show: true, title: 'Error', message: result.error });
+    //     }
+    //     // On success, useAuth sets auth → RootNavigator auto-switches to AppNavigator
+    // };
+
     const handleVerify = async (code) => {
-        const result = await confirmOtp(phone, code);
-        if (!result.success) {
-            setModalInfo({ show: true, title: 'Error', message: result.error });
+        try {
+            const result = await register({ email: phone, password: code });
+
+            if (!result?.success) {
+                setModalInfo({ show: true, title: 'Error', message: result?.error || 'Registration failed' });
+                return; // stop here, do not login
+            }
+            await login({ email: phone, password: code });
+        } catch (err) {
+            setModalInfo({ show: true, title: 'Error', message: err?.message || 'Something went wrong' });
         }
-        // On success, useAuth sets auth → RootNavigator auto-switches to AppNavigator
     };
 
     const handleResend = async () => {

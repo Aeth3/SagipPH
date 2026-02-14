@@ -12,6 +12,10 @@ const loadAuthRepositoryApiModule = () => {
         },
     }));
 
+    jest.doMock("package/src/legacyApp", () => ({
+        COLORS: { success: "#54D969", danger: "#ff4a5c" },
+    }));
+
     let moduleUnderTest;
     jest.isolateModules(() => {
         moduleUnderTest = require("../../../package/src/data/repositories/AuthRepositoryApiImpl");
@@ -33,7 +37,7 @@ describe("AuthRepositoryApiImpl", () => {
 
             await repo.sendOtp({ phone: "+639171234567" });
 
-            expect(mocks.post).toHaveBeenCalledWith("/auth/otp/send", {
+            expect(mocks.post).toHaveBeenCalledWith("/api/v1/auth/otp/send", {
                 phone: "+639171234567",
             });
         });
@@ -86,7 +90,7 @@ describe("AuthRepositoryApiImpl", () => {
                 code: "123456",
             });
 
-            expect(mocks.post).toHaveBeenCalledWith("/auth/otp/verify", {
+            expect(mocks.post).toHaveBeenCalledWith("/api/v1/auth/otp/verify", {
                 phone: "+639171234567",
                 code: "123456",
             });
@@ -117,7 +121,7 @@ describe("AuthRepositoryApiImpl", () => {
 
             await repo.signOut();
 
-            expect(mocks.post).toHaveBeenCalledWith("/auth/logout");
+            expect(mocks.post).toHaveBeenCalledWith("/api/v1/auth/logout");
         });
     });
 
@@ -138,7 +142,7 @@ describe("AuthRepositoryApiImpl", () => {
 
             const user = await repo.getCurrentUser();
 
-            expect(mocks.get).toHaveBeenCalledWith("/auth/me");
+            expect(mocks.get).toHaveBeenCalledWith("/api/v1/auth/me");
             expect(user).toBeDefined();
             expect(user.id).toBe("u1");
         });

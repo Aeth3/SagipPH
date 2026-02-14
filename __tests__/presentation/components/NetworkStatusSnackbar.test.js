@@ -95,7 +95,7 @@ describe("NetworkStatusSnackbar", () => {
 
         expect(mockSnackbarShow).toHaveBeenCalledWith(
             expect.objectContaining({
-                text: expect.stringContaining("back online"),
+                text: expect.stringContaining("You are connected online"),
                 backgroundColor: "#54D969",
             })
         );

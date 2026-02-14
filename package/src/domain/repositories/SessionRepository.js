@@ -22,4 +22,16 @@ export class SessionRepository {
   async getRefreshToken() {
     throw new Error("SessionRepository.getRefreshToken() not implemented");
   }
+
+  async saveClientToken(_token) {
+    throw new Error("SessionRepository.saveClientToken() not implemented");
+  }
+
+  async getClientToken() {
+    throw new Error("SessionRepository.getClientToken() not implemented");
+  }
+
+  async clearClientToken() {
+    throw new Error("SessionRepository.clearClientToken() not implemented");
+  }
 }

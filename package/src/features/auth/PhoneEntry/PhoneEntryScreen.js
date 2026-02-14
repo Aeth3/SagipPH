@@ -22,6 +22,13 @@ const PHONE_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
 export default function PhoneEntryScreen() {
     const { phone, setPhone, handleSendOtp, sending, modalInfo, handleConfirm } =
         usePhoneEntryController();
+    const handlePhoneChange = (text) => {
+        const digitsOnly = text.replace(/\D/g, "");
+        const localNumber = digitsOnly.startsWith("63")
+            ? digitsOnly.slice(2)
+            : digitsOnly;
+        setPhone(`+63${localNumber.slice(0, 10)}`);
+    };
 
     return (
         <>
@@ -86,10 +93,10 @@ export default function PhoneEntryScreen() {
                                 </View>
                                 <TextInput
                                     style={styles.inputStyle}
-                                    placeholder="+63XXXXXXXXXX"
+                                    placeholder="XXXXXXXXXX"
                                     placeholderTextColor="rgba(255,255,255,.6)"
                                     value={phone}
-                                    onChangeText={setPhone}
+                                    onChangeText={handlePhoneChange}
                                     keyboardType="phone-pad"
                                     maxLength={13}
                                 />

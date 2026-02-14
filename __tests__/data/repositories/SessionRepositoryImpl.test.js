@@ -8,9 +8,20 @@ jest.mock("../../../package/src/infra/storage/asyncStorageAdapter", () => ({
     },
 }));
 
+jest.mock("../../../package/src/infra/storage/clientTokenStorageAdapter", () => ({
+    clientTokenStorageAdapter: {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+    },
+}));
+
 const {
     asyncStorageAdapter,
 } = require("../../../package/src/infra/storage/asyncStorageAdapter");
+const {
+    clientTokenStorageAdapter,
+} = require("../../../package/src/infra/storage/clientTokenStorageAdapter");
 
 describe("SessionRepositoryImpl", () => {
     let repo;
@@ -94,6 +105,35 @@ describe("SessionRepositoryImpl", () => {
             );
             const token = await repo.getAccessToken();
             expect(token).toBeNull();
+        });
+    });
+
+    describe("client token persistence", () => {
+        it("saves client token to storage", async () => {
+            clientTokenStorageAdapter.setItem.mockResolvedValue(undefined);
+            await repo.saveClientToken("client-token-123");
+            expect(clientTokenStorageAdapter.setItem).toHaveBeenCalledWith(
+                "client_token",
+                "client-token-123"
+            );
+        });
+
+        it("gets client token from storage", async () => {
+            clientTokenStorageAdapter.getItem.mockResolvedValue("client-token-abc");
+            const token = await repo.getClientToken();
+            expect(token).toBe("client-token-abc");
+        });
+
+        it("returns null when client token is missing", async () => {
+            clientTokenStorageAdapter.getItem.mockResolvedValue(null);
+            const token = await repo.getClientToken();
+            expect(token).toBeNull();
+        });
+
+        it("clears client token from storage", async () => {
+            clientTokenStorageAdapter.removeItem.mockResolvedValue(undefined);
+            await repo.clearClientToken();
+            expect(clientTokenStorageAdapter.removeItem).toHaveBeenCalledWith("client_token");
         });
     });
 });

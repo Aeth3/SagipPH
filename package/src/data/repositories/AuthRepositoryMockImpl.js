@@ -125,6 +125,14 @@ export class AuthRepositoryMockImpl extends AuthRepository {
     const user = mapToDomainUser({ ...DEFAULT_USER, phone });
     return { user, session: buildMockSession(user) };
   }
+
+  async getClientToken(name) {
+    const clientName = String(name || "demo-client").trim();
+    if (!clientName) {
+      throw new Error("Client name is required");
+    }
+    return `demo_client_token_${clientName}`;
+  }
 }
 
 export const authRepositoryMock = new AuthRepositoryMockImpl();

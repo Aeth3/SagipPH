@@ -1,8 +1,8 @@
-import { DEMO_MODE } from "@env";
+import { DEMO_MODE, CLIENT_NAME } from "@env";
 import { authRepository as authRepositorySupabase } from "../data/repositories/AuthRepositoryImpl";
 import { authRepositoryMock } from "../data/repositories/AuthRepositoryMockImpl";
 import { sessionRepository } from "../data/repositories/SessionRepositoryImpl";
-import { setAccessTokenProvider, setRefreshSessionProvider, setOnRefreshFailed } from "../infra/http/apiClient";
+import { setAccessTokenProvider, setClientTokenProvider, setRefreshSessionProvider, setOnRefreshFailed } from "../infra/http/apiClient";
 import { makeSignInWithPassword } from "../domain/usecases/SignInWithPassword";
 import { makeSignUp } from "../domain/usecases/SignUp";
 import { makeSignOut } from "../domain/usecases/SignOut";
@@ -18,7 +18,9 @@ import { makeSendOtp } from "../domain/usecases/SendOtp";
 import { makeVerifyOtp } from "../domain/usecases/VerifyOtp";
 import { makeRefreshSession } from "../domain/usecases/RefreshSession";
 import { authRepositoryApi } from "../data/repositories/AuthRepositoryApiImpl";
-
+import { makeGetClientToken } from "../domain/usecases/GetClientToken";
+import { makeRegisterUser } from "../domain/usecases/RegisterUser";
+import { makeLoginUser } from "../domain/usecases/LoginUser";
 const normalizeBoolean = (value) => {
   if (typeof value === "boolean") return value;
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -45,14 +47,22 @@ export const updatePassword = makeUpdatePassword({ authRepository });
 export const sendOtp = makeSendOtp({ authRepository });
 export const verifyOtp = makeVerifyOtp({ authRepository });
 export const refreshSession = makeRefreshSession({ authRepository, sessionRepository });
-
+export const getClientToken = makeGetClientToken({ authRepository, sessionRepository, name: CLIENT_NAME });
+export const registerUser = makeRegisterUser({ authRepository });
+export const loginUser = makeLoginUser({ authRepository });
 setAccessTokenProvider(async () => {
   const result = await getAccessToken();
   return result?.ok ? result.value : null;
 });
-
+setClientTokenProvider(async () => {
+  const token = await sessionRepository.getClientToken();
+  if (typeof token === "string" && token.trim()) {
+    return token.trim();
+  }
+  const result = await getClientToken();
+  return result?.ok ? result.value?.client_token ?? null : null;
+});
 setRefreshSessionProvider(() => refreshSession());
-
 setOnRefreshFailed(async () => {
   await clearSession();
 });

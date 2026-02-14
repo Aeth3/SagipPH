@@ -4,33 +4,15 @@ import {
   saveSession,
   signOut,
   clearSession,
+  registerUser,
+  loginUser
 } from "../../composition/authSession";
 import { useGlobal } from "../../../context/context";
 
-const USER_FACING_ERRORS = [
-  "Phone number is required",
-  "Invalid PH phone number",
-  "OTP code is required",
-  "OTP code must be exactly 6 digits",
-  "Failed to send OTP",
-  "Verification failed",
-  "Invalid OTP code",
-  "Invalid code",
-  "OTP code has expired",
-  "Too many attempts",
-  "No user returned",
-  "No session returned",
-  "Sign out failed",
-  "Network error",
-  "Rate limited",
-];
-
 const sanitizeError = (message, fallback = "Something went wrong") => {
-  if (!message || typeof message !== "string") return fallback;
-  const isUserFacing = USER_FACING_ERRORS.some(
-    (safe) => message.toLowerCase().includes(safe.toLowerCase())
-  );
-  return isUserFacing ? message : fallback;
+  if (typeof message !== "string") return fallback;
+  const normalized = message.trim();
+  return normalized || fallback;
 };
 
 export const useAuth = () => {
@@ -86,5 +68,40 @@ export const useAuth = () => {
     }
   };
 
-  return { requestOtp, confirmOtp, logout };
+  const register = async (payload) => {
+    try {
+      setLoading(true);
+      const result = await registerUser(payload);
+      console.log("register result", result);
+      if (!result?.ok) {
+        return { success: false, error: sanitizeError(result?.error?.message, "Registration failed") };
+      }
+      return { success: true, result };
+    } catch (error) {
+      return { success: false, error: sanitizeError(error.message, "Registration failed") };
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const login = async (payload) => {
+    try {
+      setLoading(true);
+      const result = await loginUser(payload);
+      console.log("login result", result);
+
+      if (!result?.ok) {
+        return { success: false, error: sanitizeError(result?.error?.message, "Login failed") };
+      }
+      const { data } = result.value;
+      await saveSession(data);
+      setAuth(data.user);
+      return { success: true, user: data.user };
+    } catch (error) {
+      return { success: false, error: sanitizeError(error.message, "Login failed") };
+    } finally {
+      setLoading(false);
+    }
+  }
+  return { requestOtp, confirmOtp, logout, register, login };
 };

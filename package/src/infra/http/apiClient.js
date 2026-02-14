@@ -8,11 +8,16 @@ import {
 } from "@env";
 
 let accessTokenProvider = async () => null;
+let clientTokenProvider = async () => null;
 let refreshSessionProvider = null;
 let onRefreshFailed = null;
 
 export const setAccessTokenProvider = (provider) => {
   accessTokenProvider = typeof provider === "function" ? provider : async () => null;
+};
+
+export const setClientTokenProvider = (provider) => {
+  clientTokenProvider = typeof provider === "function" ? provider : async () => null;
 };
 
 /**
@@ -76,6 +81,11 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   async (config) => {
+    const clientToken = await clientTokenProvider();
+    if (clientToken) {
+      config.headers["X-Client-Token"] = clientToken;
+    }
+
     const token = await accessTokenProvider();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -104,6 +114,7 @@ apiClient.interceptors.response.use(
         error.message ||
         "Network error",
       data: error.response?.data,
+      config: error.config,
     };
 
     return Promise.reject(normalizedError);
@@ -127,15 +138,15 @@ const processQueue = (error, token = null) => {
 };
 
 apiClient.interceptors.response.use(null, async (error) => {
-  const originalRequest = error.config;
+  const originalRequest = error?.config;
 
   // Only attempt refresh on 401, and not for refresh/auth endpoints themselves
   const isAuthEndpoint =
-    originalRequest?.url?.includes("/auth/refresh") ||
-    originalRequest?.url?.includes("/auth/otp/") ||
-    originalRequest?.url?.includes("/auth/logout");
+    originalRequest?.url?.includes("/auth/refresh") || originalRequest?.url?.includes("/api/v1/auth/refresh") ||
+    originalRequest?.url?.includes("/auth/otp/") || originalRequest?.url?.includes("/api/v1/auth/otp/") ||
+    originalRequest?.url?.includes("/auth/logout") || originalRequest?.url?.includes("/api/v1/auth/logout");
 
-  if (error.status !== 401 || originalRequest._retry || isAuthEndpoint || !refreshSessionProvider) {
+  if (error?.status !== 401 || !originalRequest || originalRequest._retry || isAuthEndpoint || !refreshSessionProvider) {
     return Promise.reject(error);
   }
 
@@ -144,6 +155,7 @@ apiClient.interceptors.response.use(null, async (error) => {
     return new Promise((resolve, reject) => {
       failedQueue.push({ resolve, reject });
     }).then((token) => {
+      originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${token}`;
       return apiClient(originalRequest);
     });
@@ -166,6 +178,7 @@ apiClient.interceptors.response.use(null, async (error) => {
     const newToken = result.value?.access_token;
     processQueue(null, newToken);
 
+    originalRequest.headers = originalRequest.headers || {};
     originalRequest.headers.Authorization = `Bearer ${newToken}`;
     return apiClient(originalRequest);
   } catch (refreshError) {
@@ -180,3 +193,5 @@ apiClient.interceptors.response.use(null, async (error) => {
 });
 
 export default apiClient;
+
+

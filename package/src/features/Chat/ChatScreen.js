@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
+    Alert,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
 import ChatHeader from "../../../components/ui/ChatHeader";
@@ -17,6 +18,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { COLORS, FONTS, IMAGES, SIZES } from "package/src/legacyApp";
 import useChatController from "./controllers/ChatController";
+import CustomButton from "package/src/legacyApp/components/CustomButton";
+import { sendOtp } from "../../composition/authSession";
 
 const SUGGESTION_CHIPS = [
     { id: 1, icon: "🆘", label: "Report emergency" },

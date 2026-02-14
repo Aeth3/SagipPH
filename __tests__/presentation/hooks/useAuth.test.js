@@ -150,7 +150,7 @@ describe("useAuth", () => {
         result = await auth.confirmOtp("+639171234567", "123456");
       });
 
-      expect(result).toEqual({ success: false, error: "Verification failed" });
+      expect(result).toEqual({ success: false, error: "Server error" });
     });
   });
 

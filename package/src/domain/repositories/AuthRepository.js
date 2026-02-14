@@ -67,6 +67,18 @@ export class AuthRepository {
   async refreshSession(_refreshToken) {
     throw new Error('AuthRepository.refreshSession() not implemented');
   }
+
+  async getClientToken(_name) {
+    throw new Error('AuthRepository.getClientToken() not implemented');
+  }
+
+  async registerUser(_payload) {
+    throw new Error('AuthRepository.registerUser() not implemented');
+  }
+
+  async loginUser(_payload) {
+    throw new Error('AuthRepository.loginUser() not implemented');
+  }
 }
 
 

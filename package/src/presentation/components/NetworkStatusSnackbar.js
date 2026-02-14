@@ -29,7 +29,7 @@ export default function NetworkStatusSnackbar() {
 
         if (isOnline) {
             Snackbar.show({
-                text: "You are back online",
+                text: "You are connected online",
                 backgroundColor: COLORS.success,
                 duration: Snackbar.LENGTH_SHORT,
             });
