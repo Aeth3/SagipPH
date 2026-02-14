@@ -129,6 +129,8 @@ export const ContextProvider = ({ children }) => {
   const initClientToken = async () => {
     try {
       const result = await getClientToken();
+      console.log("result", result);
+
       if (!result?.ok) {
         throw new Error(result?.error?.message || "Failed to initialize client token");
       }

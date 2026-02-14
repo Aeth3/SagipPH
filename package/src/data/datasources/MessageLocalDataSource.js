@@ -1,5 +1,5 @@
 /**
- * MessageLocalDataSource – CRUD operations against the local SQLite `messages` table.
+ * MessageLocalDataSource - CRUD operations against the local SQLite `messages` table.
  */
 import { executeSql, ensureTable } from "../../infra/database/sqliteAdapter";
 import { MESSAGES_TABLE, MESSAGES_TABLE_COLUMNS } from "../../infra/database/messageTable";
@@ -23,11 +23,9 @@ const ensureMessagesTable = async () => {
     tableReady = true;
 };
 
-// ── READ ────────────────────────────────────────────────────────────────
-
 /**
  * Get all messages for a given chat, ordered chronologically (oldest first).
- * @param {string} chatId – the local_id of the parent chat
+ * @param {string} chatId - the local_id of the parent chat
  */
 export const getMessagesByChatId = async (chatId) => {
     await ensureMessagesTable();
@@ -35,7 +33,7 @@ export const getMessagesByChatId = async (chatId) => {
         `SELECT * FROM ${MESSAGES_TABLE} WHERE chat_id = ? ORDER BY created_at ASC`,
         [chatId]
     );
-    console.log(`${TAG} getMessagesByChatId(${chatId}) → ${rows.length} rows`);
+    console.log(`${TAG} getMessagesByChatId(${chatId}) -> ${rows.length} rows`);
     return rows;
 };
 
@@ -45,15 +43,13 @@ export const getMessageByLocalId = async (localId) => {
         `SELECT * FROM ${MESSAGES_TABLE} WHERE local_id = ?`,
         [localId]
     );
-    console.log(`${TAG} getMessageByLocalId(${localId}) →`, rows[0] ?? null);
+    console.log(`${TAG} getMessageByLocalId(${localId}) ->`, rows[0] ?? null);
     return rows[0] ?? null;
 };
 
-// ── WRITE ───────────────────────────────────────────────────────────────
-
 /**
  * Insert a new message into SQLite.
- * @param {object} data – { chatId, sender, content }
+ * @param {object} data - { chatId, sender, content }
  * @returns {object} the full row as stored (snake_case keys)
  */
 export const insertMessage = async (data) => {
@@ -61,7 +57,9 @@ export const insertMessage = async (data) => {
     const localId = uuid();
     const createdAt = now();
 
-    console.log(`${TAG} insertMessage → chat_id=${data.chat_id || data.chatId}, sender=${data.sender}, content="${data.content.substring(0, 50)}..."`);
+    console.log(
+        `${TAG} insertMessage -> chat_id=${data.chat_id || data.chatId}, sender=${data.sender}, content="${data.content.substring(0, 50)}..."`
+    );
     await executeSql(
         `INSERT INTO ${MESSAGES_TABLE}
        (local_id, chat_id, sender, content, created_at)
@@ -80,7 +78,7 @@ export const insertMessage = async (data) => {
 
 /**
  * Delete all messages for a chat.
- * @param {string} chatId – the local_id of the parent chat
+ * @param {string} chatId - the local_id of the parent chat
  */
 export const deleteMessagesByChatId = async (chatId) => {
     await ensureMessagesTable();
@@ -89,7 +87,7 @@ export const deleteMessagesByChatId = async (chatId) => {
         `DELETE FROM ${MESSAGES_TABLE} WHERE chat_id = ?`,
         [chatId]
     );
-    console.log(`${TAG} deleteMessagesByChatId → rowsAffected=${rowsAffected}`);
+    console.log(`${TAG} deleteMessagesByChatId -> rowsAffected=${rowsAffected}`);
     return rowsAffected;
 };
 
@@ -103,6 +101,19 @@ export const deleteMessageByLocalId = async (localId) => {
         `DELETE FROM ${MESSAGES_TABLE} WHERE local_id = ?`,
         [localId]
     );
-    console.log(`${TAG} deleteMessageByLocalId → rowsAffected=${rowsAffected}`);
+    console.log(`${TAG} deleteMessageByLocalId -> rowsAffected=${rowsAffected}`);
     return rowsAffected > 0;
+};
+
+/**
+ * Delete all messages.
+ */
+export const deleteAllMessages = async () => {
+    await ensureMessagesTable();
+    console.log(`${TAG} deleteAllMessages`);
+    const { rowsAffected } = await executeSql(
+        `DELETE FROM ${MESSAGES_TABLE}`
+    );
+    console.log(`${TAG} deleteAllMessages -> rowsAffected=${rowsAffected}`);
+    return rowsAffected;
 };

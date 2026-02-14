@@ -198,7 +198,8 @@ export class AuthRepositoryApiImpl extends AuthRepository {
 
     async getClientToken(name) {
         const response = await apiClient.post('/api/v1/client/register', { name });
-
+        console.log("getClientToken response", response);
+        
         const clientToken = response?.data?.client_token ?? response?.client_token;
         if (typeof clientToken !== 'string') {
             throw new Error(response?.message || 'Failed to get client token');

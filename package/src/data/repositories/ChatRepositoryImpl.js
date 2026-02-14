@@ -45,6 +45,13 @@ export class ChatRepositoryImpl extends ChatRepository {
         return { success: true };
     }
 
+    async clearChats() {
+        // Clear children first for DBs where FK cascade may not be enforced.
+        await messageDS.deleteAllMessages();
+        const deletedCount = await chatDS.deleteAllChats();
+        return { success: true, deletedCount };
+    }
+
     // ── Message Reads ──────────────────────────────────────────────────
 
     async getMessages(chatId) {

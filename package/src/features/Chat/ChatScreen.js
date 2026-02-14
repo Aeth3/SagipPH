@@ -10,52 +10,184 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
-    Alert,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
 import ChatHeader from "../../../components/ui/ChatHeader";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
-import { COLORS, FONTS, IMAGES, SIZES } from "package/src/legacyApp";
+import {
+    faPaperPlane,
+    faPhone,
+    faMinus,
+    faPlus,
+    faCircleCheck,
+} from "@fortawesome/free-solid-svg-icons";
+import { COLORS, IMAGES } from "package/src/legacyApp";
 import useChatController from "./controllers/ChatController";
-import CustomButton from "package/src/legacyApp/components/CustomButton";
-import { sendOtp } from "../../composition/authSession";
+import { useOfflineStatus } from "../../presentation/hooks/useOfflineStatus";
+import { useAlertModal } from "package/src/presentation/hooks/useAlertModal";
+import SendSMS from "react-native-sms";
+import { useNavigation } from "@react-navigation/native";
+import SearchableDropdown from "../../../components/ui/SearchableDropdown";
 
 const SUGGESTION_CHIPS = [
-    { id: 1, icon: "🆘", label: "Report emergency" },
-    { id: 2, icon: "📍", label: "Find nearest shelter" },
-    { id: 3, icon: "📋", label: "Preparedness tips" },
-    { id: 4, icon: "🌊", label: "Weather updates" },
-    { id: 5, icon: "💬", label: "Ask anything" },
+    { id: 1, icon: "\uD83D\uDEA8", label: "Report emergency" },
+    { id: 2, icon: "\uD83D\uDCCD", label: "Find nearest shelter" },
+    { id: 3, icon: "\uD83D\uDCCB", label: "Preparedness tips" },
+    { id: 4, icon: "\uD83C\uDF0A", label: "Weather updates" },
+    { id: 5, icon: "\uD83D\uDCAC", label: "Ask anything" },
 ];
 
-/* ── Sub-components ────────────────────────────────────── */
+const RISK_LEVELS = [
+    {
+        id: "low",
+        label: "Low",
+        subLabel: "safe",
+        color: COLORS.success,
+        lightColor: "rgba(84,217,105,0.18)",
+    },
+    {
+        id: "moderate",
+        label: "Moderate",
+        subLabel: "heightened",
+        color: COLORS.warning,
+        lightColor: "rgba(255,176,44,0.18)",
+    },
+    {
+        id: "high",
+        label: "High",
+        subLabel: "serious",
+        color: COLORS.red,
+        lightColor: "rgba(248,92,111,0.18)",
+    },
+    {
+        id: "critical",
+        label: "Critical",
+        subLabel: "severe",
+        color: COLORS.danger,
+        lightColor: "rgba(255,74,92,0.18)",
+    },
+];
 
-function SuggestionChip({ icon, label, onPress }) {
+const PEOPLE_GROUPS = [
+    { id: "seniors", label: "Seniors" },
+    { id: "kids", label: "Kids (below 12)" },
+    { id: "pregnant", label: "Pregnant" },
+    { id: "adults", label: "Adults (Male / Female)" },
+];
+
+const BARANGAY_OPTIONS = [
+    "Poblacion",
+    "San Isidro",
+    "San Roque",
+    "Santa Cruz",
+    "Mabini",
+];
+
+const normalizeContactInput = (value) => {
+    let digits = (value ?? "").replace(/\D/g, "");
+    if (digits.startsWith("63")) digits = digits.slice(2);
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    return digits.slice(0, 10);
+};
+
+const isValidPhMobileLocal = (localNumber) => /^9\d{9}$/.test(localNumber);
+
+function AnimatedButton({
+    style,
+    onPress,
+    disabled,
+    children,
+    scaleTo = 0.96,
+    activeOpacity = 1,
+}) {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const opacityAnim = useRef(new Animated.Value(1)).current;
+
+    const animateTo = (scale, opacity) => {
+        Animated.parallel([
+            Animated.timing(scaleAnim, {
+                toValue: scale,
+                duration: 90,
+                useNativeDriver: true,
+            }),
+            Animated.timing(opacityAnim, {
+                toValue: opacity,
+                duration: 90,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
     return (
-        <TouchableOpacity style={styles.chip} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity
+            onPress={onPress}
+            disabled={disabled}
+            activeOpacity={activeOpacity}
+            onPressIn={() => {
+                if (!disabled) animateTo(scaleTo, 0.9);
+            }}
+            onPressOut={() => animateTo(1, 1)}
+        >
+            <Animated.View
+                style={[
+                    style,
+                    {
+                        transform: [{ scale: scaleAnim }],
+                        opacity: opacityAnim,
+                    },
+                ]}
+            >
+                {children}
+            </Animated.View>
+        </TouchableOpacity>
+    );
+}
+
+function SuggestionChip({ icon, label, onPress, disabled }) {
+    return (
+        <AnimatedButton
+            style={[styles.chip, disabled && styles.chipDisabled]}
+            onPress={onPress}
+            disabled={disabled}
+            scaleTo={0.97}
+        >
             <Text style={styles.chipIcon}>{icon}</Text>
             <Text style={styles.chipLabel}>{label}</Text>
-        </TouchableOpacity>
+        </AnimatedButton>
     );
 }
 
 function MessageBubble({ message }) {
     const isUser = message.role === "user";
+    const appearAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(appearAnim, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+        }).start();
+    }, [appearAnim]);
+
+    const translateY = appearAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [8, 0],
+    });
+
     return (
-        <View
+        <Animated.View
             style={[
                 styles.bubble,
                 isUser ? styles.bubbleUser : styles.bubbleAssistant,
                 message.isError && styles.bubbleError,
+                { opacity: appearAnim, transform: [{ translateY }] },
             ]}
         >
             {!isUser && (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={styles.bubbleHeader}>
                     <Image source={IMAGES.appLogo} style={styles.bubbleImage} />
                     <Text style={styles.bubbleSender}>SagipPH AI</Text>
                 </View>
-
             )}
             <Text
                 style={[
@@ -65,7 +197,7 @@ function MessageBubble({ message }) {
             >
                 {message.text}
             </Text>
-        </View>
+        </Animated.View>
     );
 }
 
@@ -90,7 +222,7 @@ function BouncingDot({ delay }) {
         );
         loop.start();
         return () => loop.stop();
-    }, []);
+    }, [anim, delay]);
 
     const translateY = anim.interpolate({
         inputRange: [0, 1],
@@ -121,7 +253,7 @@ function TypingIndicator() {
             duration: 350,
             useNativeDriver: true,
         }).start();
-    }, []);
+    }, [fadeAnim]);
 
     return (
         <Animated.View
@@ -138,22 +270,22 @@ function TypingIndicator() {
                     <BouncingDot delay={150} />
                     <BouncingDot delay={300} />
                 </View>
-                <Text style={styles.typingText}>SagipPH AI is thinking…</Text>
+                <Text style={styles.typingText}>SagipPH AI is thinking...</Text>
             </View>
         </Animated.View>
     );
 }
 
-function ChatInput({ value, onChangeText, onSend, disabled }) {
+function ChatInput({ value, onChangeText, onSend, disabled, isOnline }) {
     return (
         <View style={styles.inputWrapper}>
-            <View style={styles.inputContainer}>
-                <TouchableOpacity style={styles.inputAction}>
-                    <Text style={styles.inputActionIcon}>＋</Text>
-                </TouchableOpacity>
+            <View style={[styles.inputContainer, disabled && styles.inputContainerDisabled]}>
+                <AnimatedButton style={styles.inputAction} disabled={disabled} scaleTo={0.9}>
+                    <Text style={styles.inputActionIcon}>+</Text>
+                </AnimatedButton>
                 <TextInput
                     style={styles.textInput}
-                    placeholder="Ask SagipPH"
+                    placeholder={disabled ? "Chat unavailable while offline" : "Ask SagipPH"}
                     placeholderTextColor={COLORS.placeholderColor}
                     value={value}
                     onChangeText={onChangeText}
@@ -162,50 +294,455 @@ function ChatInput({ value, onChangeText, onSend, disabled }) {
                     onSubmitEditing={onSend}
                     editable={!disabled}
                 />
-                <TouchableOpacity
-                    style={[styles.sendButton, !value.trim() && styles.sendButtonDisabled]}
+                <AnimatedButton
+                    style={[
+                        styles.sendButton,
+                        (!value.trim() && isOnline) && styles.sendButtonDisabled,
+                    ]}
                     onPress={onSend}
-                    disabled={!value.trim() || disabled}
-                    activeOpacity={0.7}
+                    disabled={!value.trim() && isOnline}
+                    scaleTo={0.9}
                 >
                     <FontAwesomeIcon icon={faPaperPlane} size={16} color={COLORS.white} />
-                </TouchableOpacity>
+                </AnimatedButton>
             </View>
         </View>
     );
 }
 
-/* ── Main Screen ───────────────────────────────────────── */
+function CounterRow({ label, value, onDecrement, onIncrement, isLast }) {
+    return (
+        <View style={[styles.counterRow, isLast && styles.counterRowLast]}>
+            <Text style={styles.counterLabel}>{label}</Text>
+            <View style={styles.counterActions}>
+                <AnimatedButton style={styles.counterBtn} onPress={onDecrement} scaleTo={0.88}>
+                    <FontAwesomeIcon icon={faMinus} size={10} color={COLORS.title} />
+                </AnimatedButton>
+                <Text style={styles.counterValue}>{value}</Text>
+                <AnimatedButton style={styles.counterBtn} onPress={onIncrement} scaleTo={0.88}>
+                    <FontAwesomeIcon icon={faPlus} size={10} color={COLORS.title} />
+                </AnimatedButton>
+            </View>
+        </View>
+    );
+}
+
+function AnimatedContactItem({ children }) {
+    const enterAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(enterAnim, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+        }).start();
+    }, [enterAnim]);
+
+    const translateY = enterAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-12, 0],
+    });
+
+    return (
+        <Animated.View style={{ opacity: enterAnim, transform: [{ translateY }] }}>
+            {children}
+        </Animated.View>
+    );
+}
+
+function ContactInputRow({
+    contactId,
+    displayIndex,
+    contact,
+    errorMessage,
+    onChangeAdditionalContact,
+    onBlurAdditionalContact,
+    onRemoveAdditionalContact,
+}) {
+    const exitOpacity = useRef(new Animated.Value(1)).current;
+    const exitTranslateY = useRef(new Animated.Value(0)).current;
+    const exitScaleY = useRef(new Animated.Value(1)).current;
+    const [isRemoving, setIsRemoving] = useState(false);
+
+    const handleRemovePress = () => {
+        if (isRemoving) return;
+        setIsRemoving(true);
+        Animated.parallel([
+            Animated.timing(exitOpacity, {
+                toValue: 0,
+                duration: 170,
+                useNativeDriver: true,
+            }),
+            Animated.timing(exitTranslateY, {
+                toValue: -8,
+                duration: 170,
+                useNativeDriver: true,
+            }),
+            Animated.timing(exitScaleY, {
+                toValue: 0.92,
+                duration: 170,
+                useNativeDriver: true,
+            }),
+        ]).start(({ finished }) => {
+            if (finished) onRemoveAdditionalContact(contactId);
+        });
+    };
+
+    return (
+        <Animated.View
+            style={{
+                opacity: exitOpacity,
+                transform: [{ translateY: exitTranslateY }, { scaleY: exitScaleY }],
+            }}
+        >
+            <AnimatedContactItem>
+                <View style={styles.contactItemWrap}>
+                    <View style={styles.contactFieldWrap}>
+                        <FontAwesomeIcon icon={faPhone} size={14} color={COLORS.title} />
+                        <Text style={styles.countryCode}>+63</Text>
+                        <TextInput
+                            style={styles.altInput}
+                            placeholder={`9XXXXXXXXX (Contact ${displayIndex + 1})`}
+                            placeholderTextColor={COLORS.placeholderColor}
+                            value={contact}
+                            onChangeText={(value) => onChangeAdditionalContact(contactId, value)}
+                            onBlur={() => onBlurAdditionalContact(contactId)}
+                            keyboardType="phone-pad"
+                        />
+                        <AnimatedButton
+                            style={styles.removeContactBtn}
+                            onPress={handleRemovePress}
+                            scaleTo={0.9}
+                            disabled={isRemoving}
+                        >
+                            <Text style={styles.removeContactBtnText}>Remove</Text>
+                        </AnimatedButton>
+                    </View>
+                    {!!errorMessage && <Text style={styles.contactErrorText}>{errorMessage}</Text>}
+                </View>
+            </AnimatedContactItem>
+        </Animated.View>
+    );
+}
+
+function OfflineRescueFields({
+    barangay,
+    onChangeBarangay,
+    onBlurBarangay,
+    barangayError,
+    additionalContacts,
+    onAddContact,
+    onChangeAdditionalContact,
+    onRemoveAdditionalContact,
+    onBlurAdditionalContact,
+    getAdditionalContactError,
+    selectedRisk,
+    onSelectRisk,
+    peopleCounts,
+    onChangePeopleCount,
+}) {
+    const belowFieldsTranslateY = useRef(new Animated.Value(0)).current;
+    const prevContactsCountRef = useRef(additionalContacts.length);
+
+    useEffect(() => {
+        const prevCount = prevContactsCountRef.current;
+        const isAdding = additionalContacts.length > prevCount;
+        const startTranslate = isAdding ? -14 : 14;
+
+        belowFieldsTranslateY.setValue(startTranslate);
+
+        Animated.timing(belowFieldsTranslateY, {
+            toValue: 0,
+            duration: 220,
+            useNativeDriver: true,
+        }).start();
+
+        prevContactsCountRef.current = additionalContacts.length;
+    }, [additionalContacts.length, belowFieldsTranslateY]);
+
+    return (
+        <View style={styles.offlineCard}>
+            <Text style={styles.sectionTitle}>Rescue Request ⛑️</Text>
+
+            <View style={styles.verifiedWrap}>
+                <View style={styles.verifiedHeader}>
+                    <FontAwesomeIcon icon={faCircleCheck} size={12} color={COLORS.red} />
+                    <Text style={styles.verifiedLabel}>Barangay:</Text>
+                </View>
+                <View style={!!barangayError && styles.dropdownErrorWrap}>
+                    <SearchableDropdown
+                        value={barangay}
+                        options={BARANGAY_OPTIONS}
+                        onChange={(nextValue) => {
+                            onChangeBarangay(nextValue);
+                            onBlurBarangay();
+                        }}
+                        placeholder="Select barangay"
+                        title="Choose Barangay"
+                        searchPlaceholder="Search barangay"
+                    />
+                </View>
+                {!!barangayError && <Text style={styles.barangayErrorText}>{barangayError}</Text>}
+            </View>
+
+            <AnimatedButton style={styles.altContactWrap} onPress={onAddContact} scaleTo={0.97}>
+                <Text style={styles.altPrefix}>+</Text>
+                <Text style={styles.addContactLabel}>Add Another Contact (Optional)</Text>
+            </AnimatedButton>
+
+            {additionalContacts.map((contact, index) => {
+                const errorMessage = getAdditionalContactError(contact.id);
+                return (
+                    <ContactInputRow
+                        key={contact.id}
+                        contactId={contact.id}
+                        displayIndex={index}
+                        contact={contact.value}
+                        errorMessage={errorMessage}
+                        onChangeAdditionalContact={onChangeAdditionalContact}
+                        onBlurAdditionalContact={onBlurAdditionalContact}
+                        onRemoveAdditionalContact={onRemoveAdditionalContact}
+                    />
+                );
+            })}
+
+            <Animated.View
+                style={{
+                    transform: [{ translateY: belowFieldsTranslateY }],
+                    gap: 12,
+                }}
+            >
+                <Text style={styles.sectionLabel}>Select Current Risk Level</Text>
+                <View style={styles.riskRow}>
+                    {RISK_LEVELS.map((risk) => {
+                        const isSelected = selectedRisk === risk.id;
+                        return (
+                            <AnimatedButton
+                                key={risk.id}
+                                style={[
+                                    styles.riskChip,
+                                    { backgroundColor: isSelected ? risk.color : risk.lightColor },
+                                    isSelected && styles.riskChipSelected,
+                                ]}
+                                onPress={() => onSelectRisk(risk.id)}
+                                scaleTo={0.95}
+                            >
+                                <Text style={[styles.riskTitle, !isSelected && styles.riskTitleLight]}>
+                                    {risk.label}
+                                </Text>
+                                <Text style={[styles.riskSub, !isSelected && styles.riskSubLight]}>
+                                    {risk.subLabel}
+                                </Text>
+                            </AnimatedButton>
+                        );
+                    })}
+                </View>
+
+                <Text style={styles.sectionLabel}>People Involved</Text>
+                <View style={styles.peopleCard}>
+                    {PEOPLE_GROUPS.map((group, index) => (
+                        <CounterRow
+                            key={group.id}
+                            label={group.label}
+                            value={peopleCounts[group.id] ?? 0}
+                            onDecrement={() => onChangePeopleCount(group.id, -1)}
+                            onIncrement={() => onChangePeopleCount(group.id, 1)}
+                            isLast={index === PEOPLE_GROUPS.length - 1}
+                        />
+                    ))}
+                </View>
+            </Animated.View>
+        </View>
+    );
+}
 
 export default function ChatScreen({ route }) {
+    const navigation = useNavigation();
     const [message, setMessage] = useState("");
-    const { messages, isLoading, isReady, send, clearChat, loadChat, scrollViewRef } = useChatController();
+    const [barangay, setBarangay] = useState("");
+    const [barangayTouched, setBarangayTouched] = useState(false);
+    const [additionalContacts, setAdditionalContacts] = useState([]);
+    const nextContactIdRef = useRef(1);
+    const [selectedRisk, setSelectedRisk] = useState("moderate");
+    const [peopleCounts, setPeopleCounts] = useState({
+        seniors: 0,
+        kids: 0,
+        pregnant: 0,
+        adults: 0,
+    });
+    const { showAlert, alertModal } = useAlertModal();
+    const { messages, isLoading, send, clearChat, loadChat, scrollViewRef } = useChatController();
+    const { isOnline } = useOfflineStatus();
+    const hasAutoClearedOfflineRef = useRef(false);
 
-    // When "New Chat" is tapped in the drawer, route.params.newChat changes
     useEffect(() => {
         if (route?.params?.newChat) {
             clearChat();
         }
-    }, [route?.params?.newChat]);
+    }, [clearChat, route?.params?.newChat]);
 
-    // When a chat history item is tapped, load that conversation
     useEffect(() => {
         if (route?.params?.loadChatId) {
             loadChat(route.params.loadChatId);
         }
-    }, [route?.params?.loadChatId]);
+    }, [loadChat, route?.params?.loadChatId, route?.params]);
+
+    useEffect(() => {
+        if (isOnline) {
+            hasAutoClearedOfflineRef.current = false;
+            return;
+        }
+
+        if (messages.length > 0 && !hasAutoClearedOfflineRef.current) {
+            hasAutoClearedOfflineRef.current = true;
+            clearChat();
+            showAlert(
+                "Started new chat",
+                "Connection is down. A new chat was created so you can submit an offline rescue request.",
+                [{ text: "OK" }],
+                { type: "info" }
+            );
+        }
+    }, [clearChat, isOnline, messages.length, showAlert]);
 
     const hasMessages = messages.length > 0;
+    const interactionsDisabled = isLoading || !isOnline;
+    const barangayError = barangayTouched && !barangay.trim() ? "Barangay is required." : null;
+
+    const showOfflineAlert = () => {
+        showAlert(
+            "No internet connection",
+            "Chat is unavailable while offline.",
+            [{ text: "OK" }],
+            { type: "info" }
+        );
+    };
 
     const handleChipPress = (label) => {
+        if (!isOnline) {
+            showOfflineAlert();
+            return;
+        }
         send(label);
     };
 
     const handleSend = () => {
+        if (!isOnline) {
+            handleOfflineSend();
+            return;
+        }
         if (message.trim() && !isLoading) {
             send(message);
             setMessage("");
         }
+    };
+
+    const handleOfflineSend = () => {
+        if (!barangay.trim()) {
+            setBarangayTouched(true);
+            showAlert(
+                "Missing barangay",
+                "Please enter your barangay before sending an offline SMS request.",
+                [{ text: "OK" }],
+                { type: "warning" }
+            );
+            return;
+        }
+
+        const validContacts = additionalContacts
+            .map((item) => item.value)
+            .filter((value) => isValidPhMobileLocal(value))
+            .map((value) => `+63${value}`);
+
+        const peopleSummary = PEOPLE_GROUPS
+            .map((group) => `${group.label}: ${peopleCounts[group.id] ?? 0}`)
+            .join("|");
+
+        const smsBody = [
+            "SAGIPPH OFFLINE RESCUE REQUEST",
+            `Barangay: ${barangay.trim()}`,
+            `Risk Level: ${selectedRisk}`,
+            "People Involved:",
+            peopleSummary,
+            `Additional Contacts: ${validContacts.length > 0 ? validContacts.join(", ") : "None"}`,
+            `Notes: ${message.trim() || "N/A"}`,
+        ].join("|");
+
+        SendSMS.send(
+            {
+                body: smsBody,
+                recipients: validContacts,
+                successTypes: ["sent", "queued"],
+                allowAndroidSendWithoutReadPermission: true,
+            },
+            (completed, cancelled, error) => {
+                if (error) {
+                    showAlert(
+                        "Failed to open SMS",
+                        "Unable to open the default messaging app right now.",
+                        [{ text: "OK" }],
+                        { type: "error" }
+                    );
+                    return;
+                }
+
+                if (cancelled) return;
+
+                if (completed) {
+                    setMessage("");
+                    if (navigation.canGoBack()) {
+                        navigation.goBack();
+                    } else {
+                        navigation.navigate("ChatStack", { screen: "Chat" });
+                    }
+                }
+            }
+        );
+    };
+
+    const handlePeopleCount = (groupId, delta) => {
+        setPeopleCounts((prev) => ({
+            ...prev,
+            [groupId]: Math.max(0, (prev[groupId] ?? 0) + delta),
+        }));
+    };
+
+    const handleAddContact = () => {
+        const nextId = nextContactIdRef.current;
+        nextContactIdRef.current += 1;
+        setAdditionalContacts((prev) => [...prev, { id: nextId, value: "", touched: false }]);
+    };
+
+    const handleChangeAdditionalContact = (contactId, value) => {
+        const normalizedValue = normalizeContactInput(value);
+        setAdditionalContacts((prev) =>
+            prev.map((item) => (
+                item.id === contactId ? { ...item, value: normalizedValue } : item
+            ))
+        );
+    };
+
+    const handleBlurAdditionalContact = (contactId) => {
+        setAdditionalContacts((prev) =>
+            prev.map((item) => (
+                item.id === contactId ? { ...item, touched: true } : item
+            ))
+        );
+    };
+
+    const handleRemoveAdditionalContact = (contactId) => {
+        setAdditionalContacts((prev) => prev.filter((item) => item.id !== contactId));
+    };
+
+    const getAdditionalContactError = (contactId) => {
+        const current = additionalContacts.find((item) => item.id === contactId);
+        const value = current?.value ?? "";
+        const touched = current?.touched;
+        if (!value) return null;
+        if (!isValidPhMobileLocal(value) && touched) {
+            return "Enter a valid mobile number (9XXXXXXXXX).";
+        }
+        return null;
     };
 
     return (
@@ -225,27 +762,46 @@ export default function ChatScreen({ route }) {
                 >
                     {!hasMessages && (
                         <>
-                            {/* Greeting — shown only before first message */}
-                            <View style={styles.greetingSection}>
-                                <Text style={styles.greetingHi}>Hi AJ</Text>
-                                <Text style={styles.greetingMain}>Where should{"\n"}we start?</Text>
-                            </View>
+                            {isOnline ? (
+                                <>
+                                    <View style={styles.greetingSection}>
+                                        <Text style={styles.greetingHi}>Hi AJ</Text>
+                                        <Text style={styles.greetingMain}>Where should{"\n"}we start?</Text>
+                                    </View>
 
-                            {/* Suggestion chips */}
-                            <View style={styles.chipsContainer}>
-                                {SUGGESTION_CHIPS.map((chip) => (
-                                    <SuggestionChip
-                                        key={chip.id}
-                                        icon={chip.icon}
-                                        label={chip.label}
-                                        onPress={() => handleChipPress(chip.label)}
-                                    />
-                                ))}
-                            </View>
+                                    <View style={styles.chipsContainer}>
+                                        {SUGGESTION_CHIPS.map((chip) => (
+                                            <SuggestionChip
+                                                key={chip.id}
+                                                icon={chip.icon}
+                                                label={chip.label}
+                                                onPress={() => handleChipPress(chip.label)}
+                                                disabled={interactionsDisabled}
+                                            />
+                                        ))}
+                                    </View>
+                                </>
+                            ) : (
+                                <OfflineRescueFields
+                                    barangay={barangay}
+                                    onChangeBarangay={setBarangay}
+                                    onBlurBarangay={() => setBarangayTouched(true)}
+                                    barangayError={barangayError}
+                                    additionalContacts={additionalContacts}
+                                    onAddContact={handleAddContact}
+                                    onChangeAdditionalContact={handleChangeAdditionalContact}
+                                    onRemoveAdditionalContact={handleRemoveAdditionalContact}
+                                    onBlurAdditionalContact={handleBlurAdditionalContact}
+                                    getAdditionalContactError={getAdditionalContactError}
+                                    selectedRisk={selectedRisk}
+                                    onSelectRisk={setSelectedRisk}
+                                    peopleCounts={peopleCounts}
+                                    onChangePeopleCount={handlePeopleCount}
+                                />
+                            )}
                         </>
                     )}
 
-                    {/* Conversation */}
                     {messages.map((msg) => (
                         <MessageBubble key={msg.id} message={msg} />
                     ))}
@@ -257,9 +813,11 @@ export default function ChatScreen({ route }) {
                     value={message}
                     onChangeText={setMessage}
                     onSend={handleSend}
-                    disabled={isLoading}
+                    disabled={interactionsDisabled}
+                    isOnline={isOnline}
                 />
             </KeyboardAvoidingView>
+            {alertModal}
         </Screen>
     );
 }
@@ -272,7 +830,10 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
     },
-    // Scroll
+    bubbleHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
     scrollArea: {
         flex: 1,
     },
@@ -282,7 +843,6 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
 
-    // Greeting
     greetingSection: {
         marginBottom: 36,
     },
@@ -299,7 +859,6 @@ const styles = StyleSheet.create({
         lineHeight: 42,
     },
 
-    // Chips
     chipsContainer: {
         flexDirection: "column",
         gap: 12,
@@ -314,6 +873,9 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         gap: 10,
     },
+    chipDisabled: {
+        opacity: 0.55,
+    },
     chipIcon: {
         fontSize: 18,
     },
@@ -323,7 +885,208 @@ const styles = StyleSheet.create({
         fontFamily: "NunitoSans-Regular",
     },
 
-    // Message bubbles
+    offlineCard: {
+        backgroundColor: "transparent",
+        borderRadius: 0,
+        padding: 0,
+        gap: 12,
+    },
+    sectionTitle: {
+        fontSize: 22,
+        color: COLORS.title,
+        fontFamily: "Poppins-SemiBold",
+    },
+    verifiedWrap: {
+        gap: 8,
+    },
+    verifiedHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    verifiedLabel: {
+        fontSize: 14,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-SemiBold",
+    },
+    phoneField: {
+        borderWidth: 1,
+        borderColor: "transparent",
+        borderRadius: 28,
+        paddingHorizontal: 18,
+        paddingVertical: 11,
+        backgroundColor: "#F3F4F6",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    dropdownErrorWrap: {
+        borderWidth: 1,
+        borderColor: COLORS.red,
+        borderRadius: 28,
+        padding: 1,
+    },
+    phoneValue: {
+        flex: 1,
+        fontSize: 16,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-Regular",
+        paddingVertical: 0,
+    },
+    barangayErrorText: {
+        marginLeft: 18,
+        fontSize: 12,
+        color: COLORS.red,
+        fontFamily: "NunitoSans-Regular",
+    },
+    altContactWrap: {
+        borderWidth: 1,
+        borderColor: COLORS.primary2,
+        borderRadius: 28,
+        paddingHorizontal: 18,
+        minHeight: 48,
+        backgroundColor: "#EAF7F2",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    contactFieldWrap: {
+        borderWidth: 0,
+        borderRadius: 28,
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        backgroundColor: "#F3F4F6",
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    removeContactBtn: {
+        marginLeft: 8,
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        backgroundColor: "#FEE2E2",
+    },
+    removeContactBtnText: {
+        fontSize: 12,
+        color: COLORS.red,
+        fontFamily: "NunitoSans-Bold",
+    },
+    contactItemWrap: {
+        gap: 4,
+    },
+    addContactLabel: {
+        flex: 0,
+        fontSize: 15,
+        color: COLORS.primary2,
+        fontFamily: "NunitoSans-Bold",
+    },
+    altPrefix: {
+        fontSize: 20,
+        color: COLORS.primary2,
+        lineHeight: 24,
+        marginRight: 8,
+        fontFamily: "NunitoSans-Bold",
+    },
+    altInput: {
+        flex: 1,
+        fontSize: 15,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-Regular",
+        paddingVertical: 0,
+    },
+    countryCode: {
+        marginLeft: 8,
+        marginRight: 6,
+        fontSize: 15,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-SemiBold",
+    },
+    contactErrorText: {
+        marginLeft: 18,
+        fontSize: 12,
+        color: COLORS.red,
+        fontFamily: "NunitoSans-Regular",
+    },
+    sectionLabel: {
+        fontSize: 16,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-SemiBold",
+    },
+    riskRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+    },
+    riskChip: {
+        borderRadius: 28,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: "48%",
+    },
+    riskChipSelected: {
+        borderColor: COLORS.title,
+    },
+    riskTitle: {
+        fontSize: 15,
+        color: COLORS.white,
+        fontFamily: "Poppins-SemiBold",
+    },
+    riskSub: {
+        fontSize: 11,
+        color: COLORS.white,
+        fontFamily: "NunitoSans-Regular",
+    },
+    riskTitleLight: {
+        color: COLORS.title,
+    },
+    riskSubLight: {
+        color: COLORS.text,
+    },
+    peopleCard: {
+        backgroundColor: "transparent",
+        gap: 8,
+    },
+    counterRow: {
+        minHeight: 52,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 18,
+        backgroundColor: "#F3F4F6",
+        borderRadius: 28,
+    },
+    counterRowLast: {
+        borderBottomWidth: 0,
+    },
+    counterLabel: {
+        flex: 1,
+        fontSize: 15,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-Regular",
+    },
+    counterActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    counterBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: COLORS.white,
+    },
+    counterValue: {
+        width: 24,
+        textAlign: "center",
+        fontSize: 16,
+        color: COLORS.title,
+        fontFamily: "NunitoSans-Bold",
+    },
+
     bubble: {
         maxWidth: "85%",
         paddingHorizontal: 16,
@@ -347,7 +1110,7 @@ const styles = StyleSheet.create({
     bubbleSender: {
         fontSize: 11,
         fontFamily: "Poppins-SemiBold",
-        color: COLORS.themePrimary,
+        color: COLORS.primary2,
         marginBottom: 4,
     },
     bubbleText: {
@@ -362,7 +1125,6 @@ const styles = StyleSheet.create({
         color: COLORS.title,
     },
 
-    // Typing indicator
     typingBubble: {
         paddingHorizontal: 18,
         paddingVertical: 14,
@@ -401,7 +1163,6 @@ const styles = StyleSheet.create({
         fontStyle: "italic",
     },
 
-    // Input
     inputWrapper: {
         paddingHorizontal: 16,
         paddingBottom: Platform.OS === "ios" ? 24 : 16,
@@ -418,6 +1179,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 4,
         minHeight: 50,
+    },
+    inputContainerDisabled: {
+        opacity: 0.7,
     },
     textInput: {
         flex: 1,
@@ -448,10 +1212,5 @@ const styles = StyleSheet.create({
     },
     sendButtonDisabled: {
         backgroundColor: "#D1D5DB",
-    },
-    sendIcon: {
-        fontSize: 18,
-        color: COLORS.white,
-        fontWeight: "bold",
     },
 });

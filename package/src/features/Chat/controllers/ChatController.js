@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { sendMessage as sendGeminiMessage, resetChat as resetGeminiChat, generateChatTitle } from "../../../services/geminiService";
+import { sendMessage as sendGeminiMessage, resetChat as resetGeminiChat, generateChatTitleFromContext } from "../../../services/geminiService";
 import {
     getChats,
     createChat,
     updateChat,
-    deleteChat,
     getMessages as fetchMessages,
     sendMessage as persistMessage,
 } from "../../../composition/chat";
@@ -21,7 +20,6 @@ export default function useChatController() {
     const [isReady, setIsReady] = useState(false);
     const [chatTitle, setChatTitle] = useState("SagipPH Chat");
     const scrollViewRef = useRef(null);
-    const titleGenerated = useRef(false);
 
     const scrollToEnd = useCallback(() => {
         setTimeout(() => {
@@ -52,8 +50,6 @@ export default function useChatController() {
                     // Load persisted messages
                     const messagesResult = await fetchMessages(activeChat.id);
                     if (messagesResult.ok && messagesResult.value.length > 0) {
-                        // Chat already has messages — title was already generated
-                        titleGenerated.current = true;
                         const restored = messagesResult.value.map((m) => ({
                             id: m.id,
                             role: m.sender === MESSAGE_SENDERS.USER ? "user" : "assistant",
@@ -117,12 +113,14 @@ export default function useChatController() {
                 // Persist bot reply
                 persist(MESSAGE_SENDERS.BOT, reply);
 
-                // Generate a dynamic title after the first exchange
-                if (!titleGenerated.current && chatId) {
-                    titleGenerated.current = true;
-                    const generatedTitle = await generateChatTitle(trimmed, reply);
-                    setChatTitle(generatedTitle);
-                    updateChat(chatId, { title: generatedTitle });
+                // Refresh title based on recent chat context.
+                if (chatId) {
+                    const contextMessages = [...messages, userMsg, assistantMsg];
+                    const generatedTitle = await generateChatTitleFromContext(contextMessages);
+                    if (generatedTitle && generatedTitle !== chatTitle) {
+                        setChatTitle(generatedTitle);
+                        updateChat(chatId, { title: generatedTitle });
+                    }
                 }
             } catch (error) {
                 const isQuota =
@@ -148,7 +146,7 @@ export default function useChatController() {
                 scrollToEnd();
             }
         },
-        [isLoading, scrollToEnd, persist, chatId]
+        [isLoading, scrollToEnd, persist, chatId, messages, chatTitle]
     );
 
     // ── Load an existing chat by ID (from chat history) ────────────
@@ -157,7 +155,6 @@ export default function useChatController() {
             setMessages([]);
             resetGeminiChat();
             setChatId(targetChatId);
-            titleGenerated.current = true;
 
             const messagesResult = await fetchMessages(targetChatId);
             if (messagesResult.ok && messagesResult.value.length > 0) {
@@ -185,18 +182,14 @@ export default function useChatController() {
     const clearChat = useCallback(async () => {
         setMessages([]);
         resetGeminiChat();
-        titleGenerated.current = false;
         setChatTitle("SagipPH Chat");
 
-        // Delete the old chat and create a fresh one
-        if (chatId) {
-            await deleteChat(chatId);
-        }
+        // Keep previous chats for history; just create and switch to a fresh one.
         const createResult = await createChat({ title: "SagipPH Chat" });
         if (createResult.ok) {
             setChatId(createResult.value.id);
         }
-    }, [chatId]);
+    }, []);
 
     return {
         messages,

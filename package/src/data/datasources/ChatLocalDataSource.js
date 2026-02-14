@@ -1,5 +1,5 @@
 /**
- * ChatLocalDataSource – CRUD operations against the local SQLite `chats` table.
+ * ChatLocalDataSource - CRUD operations against the local SQLite `chats` table.
  */
 import { executeSql, ensureTable } from "../../infra/database/sqliteAdapter";
 import { CHATS_TABLE, CHATS_TABLE_COLUMNS } from "../../infra/database/chatTable";
@@ -23,14 +23,12 @@ const ensureChatsTable = async () => {
     tableReady = true;
 };
 
-// ── READ ────────────────────────────────────────────────────────────────
-
 export const getAllChats = async () => {
     await ensureChatsTable();
     const { rows } = await executeSql(
         `SELECT * FROM ${CHATS_TABLE} ORDER BY created_at DESC`
     );
-    console.log(`${TAG} getAllChats → ${rows.length} rows`, rows);
+    console.log(`${TAG} getAllChats -> ${rows.length} rows`, rows);
     return rows;
 };
 
@@ -40,15 +38,13 @@ export const getChatByLocalId = async (localId) => {
         `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ?`,
         [localId]
     );
-    console.log(`${TAG} getChatByLocalId(${localId}) →`, rows[0] ?? null);
+    console.log(`${TAG} getChatByLocalId(${localId}) ->`, rows[0] ?? null);
     return rows[0] ?? null;
 };
 
-// ── WRITE ───────────────────────────────────────────────────────────────
-
 /**
  * Insert a new chat into SQLite.
- * @param {object} data – { title }
+ * @param {object} data - { title }
  * @returns {object} the full row as stored (snake_case keys)
  */
 export const insertChat = async (data) => {
@@ -56,7 +52,7 @@ export const insertChat = async (data) => {
     const localId = uuid();
     const createdAt = now();
 
-    console.log(`${TAG} insertChat → local_id=${localId}, title="${data.title}"`);
+    console.log(`${TAG} insertChat -> local_id=${localId}, title="${data.title}"`);
     await executeSql(
         `INSERT INTO ${CHATS_TABLE}
        (local_id, title, created_at)
@@ -78,7 +74,10 @@ export const updateChatByLocalId = async (localId, changes) => {
     const values = [];
 
     const normalized = { ...changes };
-    if ("serverId" in normalized) { normalized.server_id = normalized.serverId; delete normalized.serverId; }
+    if ("serverId" in normalized) {
+        normalized.server_id = normalized.serverId;
+        delete normalized.serverId;
+    }
 
     for (const key of allowed) {
         if (key in normalized) {
@@ -91,7 +90,7 @@ export const updateChatByLocalId = async (localId, changes) => {
 
     values.push(localId);
 
-    console.log(`${TAG} updateChat(${localId}) → SET ${sets.join(", ")}`);
+    console.log(`${TAG} updateChat(${localId}) -> SET ${sets.join(", ")}`);
     await executeSql(
         `UPDATE ${CHATS_TABLE} SET ${sets.join(", ")} WHERE local_id = ?`,
         values
@@ -110,6 +109,19 @@ export const deleteChatByLocalId = async (localId) => {
         `DELETE FROM ${CHATS_TABLE} WHERE local_id = ?`,
         [localId]
     );
-    console.log(`${TAG} deleteChat → rowsAffected=${rowsAffected}`);
+    console.log(`${TAG} deleteChat -> rowsAffected=${rowsAffected}`);
     return rowsAffected > 0;
+};
+
+/**
+ * Delete all chats.
+ */
+export const deleteAllChats = async () => {
+    await ensureChatsTable();
+    console.log(`${TAG} deleteAllChats`);
+    const { rowsAffected } = await executeSql(
+        `DELETE FROM ${CHATS_TABLE}`
+    );
+    console.log(`${TAG} deleteAllChats -> rowsAffected=${rowsAffected}`);
+    return rowsAffected;
 };

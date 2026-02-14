@@ -1,5 +1,5 @@
 import { Buffer } from "buffer"; // Import Buffer
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
 
 import { COLORS } from "package/src/legacyApp";
 import Snackbar from "react-native-snackbar";
@@ -120,7 +120,9 @@ export const uploadFile = async (filePath, apiUrl, authToken) => {
 };
 
 const requestStoragePermission = async ({ showAlert } = {}) => {
-    const alertFn = showAlert || Alert.alert;
+    const alertFn = showAlert || ((title, message) => {
+        ShowSnackbarError([title, message].filter(Boolean).join(": "));
+    });
     let permission;
 
     if (Platform.OS === 'android') {
@@ -169,7 +171,12 @@ const requestStoragePermission = async ({ showAlert } = {}) => {
 
 // Save JSON to Downloads
 export const saveJsonToDownloads = async (jsonObject, { showAlert } = {}) => {
-    const alertFn = showAlert || Alert.alert;
+    const successFn = showAlert || ((title, message) => {
+        ShowSnackbarSuccess([title, message].filter(Boolean).join(": "));
+    });
+    const errorFn = showAlert || ((title, message) => {
+        ShowSnackbarError([title, message].filter(Boolean).join(": "));
+    });
     const uniqueId = Date.now().toString();
 
     const jsonContent = JSON.stringify(jsonObject, null, 2);
@@ -178,10 +185,10 @@ export const saveJsonToDownloads = async (jsonObject, { showAlert } = {}) => {
     try {
         await RNFS.writeFile(path, jsonContent, 'utf8');
         console.log('JSON file saved at:', path);
-        alertFn("Success", `File saved in Downloads!\nPath: ${path}`);
+        successFn("Success", `File saved in Downloads!\nPath: ${path}`);
     } catch (error) {
         console.error('Error saving file:', error);
-        alertFn("Error", "Failed to save file");
+        errorFn("Error", "Failed to save file");
     }
 };
 
@@ -198,7 +205,9 @@ export function VotersLoadingScreen({ message }) {
 }
 
 export function decryptAES(payload, keyString, { showAlert } = {}) {
-    const alertFn = showAlert || Alert.alert;
+    const alertFn = showAlert || ((title, message) => {
+        ShowSnackbarError([title, message].filter(Boolean).join(": "));
+    });
     try {
         // Restore base64 format from URL-safe
         let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');

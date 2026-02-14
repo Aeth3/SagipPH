@@ -59,8 +59,7 @@ setClientTokenProvider(async () => {
   if (typeof token === "string" && token.trim()) {
     return token.trim();
   }
-  const result = await getClientToken();
-  return result?.ok ? result.value?.client_token ?? null : null;
+  return null;
 });
 setRefreshSessionProvider(() => refreshSession());
 setOnRefreshFailed(async () => {

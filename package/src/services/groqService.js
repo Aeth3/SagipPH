@@ -81,3 +81,52 @@ export async function sendMessageViaGroq(userMessage) {
 export function resetGroqChat() {
     conversationHistory = [];
 }
+
+/**
+ * Generate a short chat title using Groq without mutating conversation history.
+ *
+ * @param {string} contextText
+ * @returns {Promise<string>}
+ */
+export async function generateTitleViaGroq(contextText) {
+    if (!GROQ_API_KEY) {
+        throw new Error("GROQ_API_KEY is not set. Add it to your .env file.");
+    }
+
+    const response = await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content:
+                        "You generate concise chat titles. Return only the title text.",
+                },
+                {
+                    role: "user",
+                    content:
+                        "Create one concise chat title from this conversation context.\n" +
+                        "Rules: max 6 words, no quotes, no trailing punctuation.\n\n" +
+                        contextText,
+                },
+            ],
+            temperature: 0.2,
+            top_p: 0.9,
+            max_tokens: 20,
+        }),
+    });
+
+    if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        throw new Error(`Groq API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    const title = data.choices?.[0]?.message?.content?.trim()?.replace(/[."]+$/g, "");
+    return title || "SagipPH Chat";
+}

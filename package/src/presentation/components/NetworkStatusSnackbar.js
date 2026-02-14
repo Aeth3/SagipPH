@@ -35,7 +35,7 @@ export default function NetworkStatusSnackbar() {
             });
         } else {
             Snackbar.show({
-                text: "You are offline. Some features may be unavailable.",
+                text: "You are offline. You will be directed to offline form submission",
                 backgroundColor: COLORS.danger,
                 duration: Snackbar.LENGTH_LONG,
             });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { DrawerContentScrollView } from "@react-navigation/drawer";
+import { DrawerContentScrollView, useDrawerStatus } from "@react-navigation/drawer";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { drawerRoutes } from "../../routes/drawerRoutes";
@@ -7,30 +7,29 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faChevronDown, faChevronUp, faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
 import { useNavigationState } from '@react-navigation/native';
 import ProfileHeader from "./ProfileHeader";
-import AlertModal from "./AlertModal";
+import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
 import { COLORS } from "package/src/legacyApp";
-import { getChats } from "../../src/composition/chat"
+import { getChats, clearChats } from "../../src/composition/chat"
 
 export default function CustomDrawer({ navigation, logout }) {
     const [expanded, setExpanded] = useState({});
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showAllHistory, setShowAllHistory] = useState(false);
     const [chatHistory, setChatHistory] = useState([]);
+    const { showAlert, alertModal } = useAlertModal();
 
     const MAX_VISIBLE_HISTORY = 5;
     const state = useNavigationState((state) => state);
     const currentRoute = state.routes[state.index]?.name;
+    const isChatHistoryExpanded = expanded.ChatHistory;
+    const drawerStatus = useDrawerStatus();
 
     // Fetch chat history whenever the drawer opens
     const loadChatHistory = useCallback(async () => {
         try {
             const result = await getChats();
             if (result.ok) {
-                // Filter out chats that still have the default title (no messages sent yet)
-                const chatsWithMessages = result.value.filter(
-                    (c) => c.title && c.title !== "SagipPH Chat"
-                );
-                setChatHistory(chatsWithMessages);
+                // Show all persisted chats, including newly created ones with default title.
+                setChatHistory(result.value || []);
             }
         } catch (err) {
             console.warn("[CustomDrawer] Failed to load chat history:", err);
@@ -41,12 +40,69 @@ export default function CustomDrawer({ navigation, logout }) {
         loadChatHistory();
     }, [loadChatHistory]);
 
-    // Refresh chat history each time the "ChatHistory" dropdown is expanded
+    // Refresh chat history every time the drawer becomes open.
     useEffect(() => {
-        if (expanded["ChatHistory"]) {
+        if (drawerStatus === "open") {
             loadChatHistory();
         }
-    }, [expanded["ChatHistory"], loadChatHistory]);
+    }, [drawerStatus, loadChatHistory]);
+
+    // Refresh chat history each time the "ChatHistory" dropdown is expanded
+    useEffect(() => {
+        if (isChatHistoryExpanded) {
+            loadChatHistory();
+        }
+    }, [isChatHistoryExpanded, loadChatHistory]);
+
+    const handleClearChats = useCallback(() => {
+        showAlert(
+            "Clear chat history",
+            "This will permanently delete all chats and messages. Continue?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Clear",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const result = await clearChats();
+                            if (!result?.ok) {
+                                throw new Error(result?.error?.message || "Failed to clear chats");
+                            }
+                            setShowAllHistory(false);
+                            await loadChatHistory();
+                            navigation.navigate("ChatStack", {
+                                screen: "Chat",
+                                params: { newChat: Date.now() },
+                            });
+                        } catch (err) {
+                            console.warn("[CustomDrawer] Failed to clear chats:", err);
+                            showAlert("Clear failed", "Unable to clear chats right now.");
+                        }
+                    },
+                },
+            ],
+            { type: "confirm" }
+        );
+    }, [loadChatHistory, navigation, showAlert]);
+
+    const handleLogout = useCallback(() => {
+        showAlert(
+            "Confirm Logout",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: async () => {
+                        await logout();
+                    },
+                },
+            ],
+            { type: "confirm" }
+        );
+    }, [logout, showAlert]);
 
     return (
         <>
@@ -111,6 +167,12 @@ export default function CustomDrawer({ navigation, logout }) {
                                                         <Text style={styles.seeMoreText}>See more ({chatHistory.length - MAX_VISIBLE_HISTORY})</Text>
                                                     </TouchableOpacity>
                                                 )}
+                                                <TouchableOpacity
+                                                    style={styles.clearHistoryButton}
+                                                    onPress={handleClearChats}
+                                                >
+                                                    <Text style={styles.clearHistoryText}>Clear chats</Text>
+                                                </TouchableOpacity>
                                             </>
                                         ) : (
                                             <Text style={[styles.childText, { color: COLORS.placeholderColor, paddingHorizontal: 12, paddingVertical: 8 }]}>
@@ -165,13 +227,13 @@ export default function CustomDrawer({ navigation, logout }) {
                 <View style={styles.divider} />
 
                 {/* 🚪 Logout Button */}
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={styles.logoutItem}
-                    onPress={() => setShowLogoutModal(true)}
+                    onPress={handleLogout}
                 >
                     <FontAwesomeIcon icon={faRightFromBracket} size={16} color={COLORS.danger} />
                     <Text style={[styles.logoutText, { color: COLORS.danger }]}>Logout</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* Chat History Modal */}
@@ -214,24 +276,7 @@ export default function CustomDrawer({ navigation, logout }) {
                 </View>
             </Modal>
 
-            <AlertModal
-                visible={showLogoutModal}
-                title="Confirm Logout"
-                message="Are you sure you want to log out?"
-                type="confirm"
-                buttons={[
-                    { text: "Cancel", style: "cancel" },
-                    {
-                        text: "Logout",
-                        style: "destructive",
-                        onPress: async () => {
-                            setShowLogoutModal(false);
-                            await logout();
-                        },
-                    },
-                ]}
-                onDismiss={() => setShowLogoutModal(false)}
-            />
+            {alertModal}
         </>
     );
 }
@@ -288,6 +333,17 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "600",
         color: COLORS.primary2,
+    },
+    clearHistoryButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        marginBottom: 4,
+    },
+    clearHistoryText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: COLORS.danger || "#d00",
     },
     modalOverlay: {
         flex: 1,

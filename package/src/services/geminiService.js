@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "@env";
-import { isGroqAvailable, sendMessageViaGroq, resetGroqChat } from "./groqService";
+import { isGroqAvailable, sendMessageViaGroq, resetGroqChat, generateTitleViaGroq } from "./groqService";
 
 const SYSTEM_INSTRUCTION = `You are SagipPH AI, a helpful disaster-preparedness and emergency-response assistant for Filipino communities.
 
@@ -18,7 +18,7 @@ Guidelines:
 - If you don't know something, say so — never fabricate safety-critical information.
 - Keep responses under 300 words unless the user asks for more detail.`;
 
-const PRIMARY_MODEL = "gemini-2.0-flash";
+const PRIMARY_MODEL = "gemini-3-pro-preview";
 const FALLBACK_MODEL = "gemini-2.0-flash-lite";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -189,6 +189,56 @@ export async function generateChatTitle(userMessage, aiReply) {
         return title || "SagipPH Chat";
     } catch (error) {
         console.warn("[geminiService] generateChatTitle error:", error);
+        return "SagipPH Chat";
+    }
+}
+
+/**
+ * Generate a short title based on recent conversation context.
+ * Uses only the latest turns to keep prompt size small.
+ *
+ * @param {Array<{role: string, text: string}>} messages
+ * @returns {Promise<string>}
+ */
+export async function generateChatTitleFromContext(messages = []) {
+    try {
+        const recent = messages
+            .filter((m) => typeof m?.text === "string" && m.text.trim())
+            .slice(-8)
+            .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.text.trim()}`)
+            .join("\n");
+
+        if (!recent) return "SagipPH Chat";
+
+        if (usingGroqFallback && isGroqAvailable()) {
+            return await generateTitleViaGroq(recent);
+        }
+
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+
+        const prompt =
+            `Create one concise chat title from this conversation context.\n` +
+            `Rules: max 6 words, no quotes, no trailing punctuation.\n\n` +
+            `${recent}`;
+
+        const res = await model.generateContent(prompt);
+        const title = res.response.text().trim().replace(/[."]+$/g, "");
+        return title || "SagipPH Chat";
+    } catch (error) {
+        console.warn("[geminiService] generateChatTitleFromContext error:", error);
+        if (usingGroqFallback && isGroqAvailable()) {
+            try {
+                const recent = messages
+                    .filter((m) => typeof m?.text === "string" && m.text.trim())
+                    .slice(-8)
+                    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.text.trim()}`)
+                    .join("\n");
+                if (recent) return await generateTitleViaGroq(recent);
+            } catch (groqError) {
+                console.warn("[geminiService] generateChatTitleFromContext groq fallback error:", groqError);
+            }
+        }
         return "SagipPH Chat";
     }
 }
