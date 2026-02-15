@@ -5,7 +5,6 @@ import MenuScreen from "@features/menu/MenuScreen";
 import LeafletMap from "../components/ui/LeafletMap";
 import { StackNavigator } from "../navigators/AppNavigator";
 import Entry from "@features/auth/Home/Entry";
-import LoansScreen from "@features/loans/LoansScreen"
 import ChatHistoryScreen from "@features/ChatHistory/ChatHistoryScreen";
 export const drawerRoutes = [
     // {

@@ -16,7 +16,6 @@ import Reels from "./ui/Reels";
 import FiltersList from "../components/ui/FilterList"
 import SearchBar from "./ui/SearchBar";
 import SearchBarWithFilter from "../components/ui/SearchBarWithFilter"
-import LoanList from "@features/loans/components/LoanList"
 import HeaderTitle from "./ui/HeaderTitle";
 import FloatingAddButton from "./ui/FloatingAddButton";
 /* Register all reusable UI components */
@@ -98,14 +97,6 @@ export const componentRegistry = {
                     search: text,
                 }))
             }
-        />
-    ),
-    loanlist: (config, { props }) => (
-        <LoanList
-            loans={props?.loans}
-            onPressItem={props?.onPressLoan}
-            onLongPressItem={props?.onLongPressLoan}
-            onRetry={props?.onRetry}
         />
     ),
     headertitle: (config) => <HeaderTitle title={config.headerTitle} />,

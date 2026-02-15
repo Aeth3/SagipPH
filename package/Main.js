@@ -5,16 +5,11 @@ import {
     disposeOfflineSync,
     initializeOfflineSync,
 } from "./src/infra/http/offlineSync";
-import {
-    startLoanSyncOnReconnect,
-    stopLoanSyncOnReconnect,
-} from "./src/services/loanSyncOnReconnect";
 import NetworkStatusSnackbar from "./src/presentation/components/NetworkStatusSnackbar";
 
 export default function Main() {
     useEffect(() => {
         initializeOfflineSync();
-        startLoanSyncOnReconnect();
         return () => {
             disposeOfflineSync();
             stopLoanSyncOnReconnect();
