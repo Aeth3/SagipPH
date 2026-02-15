@@ -8,10 +8,12 @@ import { faChevronDown, faChevronUp, faRightFromBracket } from "@fortawesome/fre
 import { useNavigationState } from '@react-navigation/native';
 import ProfileHeader from "./ProfileHeader";
 import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
+import { useOfflineStatus } from "../../src/presentation/hooks/useOfflineStatus";
 import { COLORS } from "package/src/legacyApp";
 import { getChats, clearChats } from "../../src/composition/chat"
 
 export default function CustomDrawer({ navigation, logout }) {
+    const { isOnline } = useOfflineStatus();
     const [expanded, setExpanded] = useState({});
     const [showAllHistory, setShowAllHistory] = useState(false);
     const [chatHistory, setChatHistory] = useState([]);
@@ -143,8 +145,18 @@ export default function CustomDrawer({ navigation, logout }) {
                                                 {chatHistory.slice(0, MAX_VISIBLE_HISTORY).map((chat) => (
                                                     <TouchableOpacity
                                                         key={chat.id}
-                                                        style={styles.childItem}
+                                                        style={[styles.childItem, !isOnline && { opacity: 0.5 }]}
+                                                        // disabled={!isOnline}
                                                         onPress={() => {
+                                                            if (!isOnline) {
+                                                                showAlert(
+                                                                    "Offline mode",
+                                                                    "You are offline. Chat history is disabled.",
+                                                                    [{ text: "OK" }],
+                                                                    { type: "info" }
+                                                                );
+                                                                return;
+                                                            }
                                                             navigation.navigate("ChatStack", {
                                                                 screen: "Chat",
                                                                 params: { loadChatId: chat.id },
@@ -256,8 +268,18 @@ export default function CustomDrawer({ navigation, logout }) {
                             keyExtractor={(item) => String(item.id)}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    style={styles.modalItem}
+                                    style={[styles.modalItem, !isOnline && { opacity: 0.5 }]}
+                                    disabled={!isOnline}
                                     onPress={() => {
+                                        if (!isOnline) {
+                                            showAlert(
+                                                "Offline mode",
+                                                "You are offline. Chat history is disabled.",
+                                                [{ text: "OK" }],
+                                                { type: "info" }
+                                            );
+                                            return;
+                                        }
                                         setShowAllHistory(false);
                                         navigation.navigate("ChatStack", {
                                             screen: "Chat",

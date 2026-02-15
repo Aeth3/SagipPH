@@ -28,60 +28,18 @@ import { useAlertModal } from "package/src/presentation/hooks/useAlertModal";
 import SendSMS from "react-native-sms";
 import { useNavigation } from "@react-navigation/native";
 import SearchableDropdown from "../../../components/ui/SearchableDropdown";
+import chatConfig from "./config.json";
 
-const SUGGESTION_CHIPS = [
-    { id: 1, icon: "\uD83D\uDEA8", label: "Report emergency" },
-    { id: 2, icon: "\uD83D\uDCCD", label: "Find nearest shelter" },
-    { id: 3, icon: "\uD83D\uDCCB", label: "Preparedness tips" },
-    { id: 4, icon: "\uD83C\uDF0A", label: "Weather updates" },
-    { id: 5, icon: "\uD83D\uDCAC", label: "Ask anything" },
-];
 
-const RISK_LEVELS = [
-    {
-        id: "low",
-        label: "Low",
-        subLabel: "safe",
-        color: COLORS.success,
-        lightColor: "rgba(84,217,105,0.18)",
-    },
-    {
-        id: "moderate",
-        label: "Moderate",
-        subLabel: "heightened",
-        color: COLORS.warning,
-        lightColor: "rgba(255,176,44,0.18)",
-    },
-    {
-        id: "high",
-        label: "High",
-        subLabel: "serious",
-        color: COLORS.red,
-        lightColor: "rgba(248,92,111,0.18)",
-    },
-    {
-        id: "critical",
-        label: "Critical",
-        subLabel: "severe",
-        color: COLORS.danger,
-        lightColor: "rgba(255,74,92,0.18)",
-    },
-];
-
-const PEOPLE_GROUPS = [
-    { id: "seniors", label: "Seniors" },
-    { id: "kids", label: "Kids (below 12)" },
-    { id: "pregnant", label: "Pregnant" },
-    { id: "adults", label: "Adults (Male / Female)" },
-];
-
-const BARANGAY_OPTIONS = [
-    "Poblacion",
-    "San Isidro",
-    "San Roque",
-    "Santa Cruz",
-    "Mabini",
-];
+const SUGGESTION_CHIPS = chatConfig.SUGGESTION_CHIPS;
+const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
+    ...risk,
+    color: typeof risk.color === 'string' && risk.color.startsWith('COLORS.')
+        ? COLORS[risk.color.replace('COLORS.', '')]
+        : risk.color,
+}));
+const PEOPLE_GROUPS = chatConfig.PEOPLE_GROUPS;
+const BARANGAY_OPTIONS = chatConfig.BARANGAY_OPTIONS;
 
 const normalizeContactInput = (value) => {
     let digits = (value ?? "").replace(/\D/g, "");
@@ -277,6 +235,23 @@ function TypingIndicator() {
 }
 
 function ChatInput({ value, onChangeText, onSend, disabled, isOnline }) {
+    if (!isOnline) {
+        // When offline, show a full-width send button (disabled)
+        return (
+            <View style={styles.inputWrapper}>
+                <AnimatedButton
+                    style={[styles.sendButton, { width: '100%', borderRadius: 28, justifyContent: 'center', alignItems: 'center', height: 50 }]}
+                    onPress={onSend}
+                    disabled={false}
+                    scaleTo={0.98}
+                >
+                    <Text style={{ color: COLORS.white, fontSize: 16, fontFamily: 'NunitoSans-Bold' }}>
+                        Send Rescue Request via SMS
+                    </Text>
+                </AnimatedButton>
+            </View>
+        );
+    }
     return (
         <View style={styles.inputWrapper}>
             <View style={[styles.inputContainer, disabled && styles.inputContainerDisabled]}>
@@ -583,9 +558,21 @@ export default function ChatScreen({ route }) {
 
     useEffect(() => {
         if (route?.params?.loadChatId) {
-            loadChat(route.params.loadChatId);
+            if (!isOnline) {
+                // If offline and trying to load a chat from history, reset to new chat and show alert
+                clearChat();
+                navigation.setParams({ loadChatId: undefined, newChat: true });
+                showAlert(
+                    "Offline mode",
+                    "You are offline. Cannot load chat history. Starting a new chat instead.",
+                    [{ text: "OK" }],
+                    { type: "info" }
+                );
+            } else {
+                loadChat(route.params.loadChatId);
+            }
         }
-    }, [loadChat, route?.params?.loadChatId, route?.params]);
+    }, [loadChat, route?.params?.loadChatId, route?.params, isOnline, clearChat, navigation, showAlert]);
 
     useEffect(() => {
         if (isOnline) {
@@ -649,10 +636,35 @@ export default function ChatScreen({ route }) {
             return;
         }
 
+        // Validate all additional contacts
+        const invalidContacts = additionalContacts.filter(
+            (item) => item.value && !isValidPhMobileLocal(item.value)
+        );
+        if (invalidContacts.length > 0) {
+            showAlert(
+                "Invalid contact(s)",
+                "Please enter valid mobile numbers for all additional contacts (format: 9XXXXXXXXX).",
+                [{ text: "OK" }],
+                { type: "warning" }
+            );
+            return;
+        }
+
         const validContacts = additionalContacts
             .map((item) => item.value)
             .filter((value) => isValidPhMobileLocal(value))
             .map((value) => `+63${value}`);
+
+        // Require at least one valid contact number
+        if (validContacts.length === 0) {
+            showAlert(
+                "Contact required",
+                "Please add at least one valid contact number (format: 9XXXXXXXXX) before sending your request.",
+                [{ text: "OK" }],
+                { type: "warning" }
+            );
+            return;
+        }
 
         const peopleSummary = PEOPLE_GROUPS
             .map((group) => `${group.label}: ${peopleCounts[group.id] ?? 0}`)

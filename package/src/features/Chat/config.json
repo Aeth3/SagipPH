@@ -1,0 +1,88 @@
+{
+    "SUGGESTION_CHIPS": [
+        {
+            "id": 1,
+            "icon": "\uD83D\uDEA8",
+            "label": "Report emergency"
+        },
+        {
+            "id": 2,
+            "icon": "\uD83D\uDCCD",
+            "label": "Find nearest shelter"
+        },
+        {
+            "id": 3,
+            "icon": "\uD83D\uDCCB",
+            "label": "Preparedness tips"
+        },
+        {
+            "id": 4,
+            "icon": "\uD83C\uDF0A",
+            "label": "Weather updates"
+        },
+        {
+            "id": 5,
+            "icon": "\uD83D\uDCAC",
+            "label": "Ask anything"
+        }
+    ],
+    "RISK_LEVELS": [
+        {
+            "id": "low",
+            "label": "Low",
+            "subLabel": "safe",
+            "color": "COLORS.success",
+            "lightColor": "rgba(84,217,105,0.18)"
+        },
+        {
+            "id": "moderate",
+            "label": "Moderate",
+            "subLabel": "heightened",
+            "color": "COLORS.warning",
+            "lightColor": "rgba(255,176,44,0.18)"
+        },
+        {
+            "id": "high",
+            "label": "High",
+            "subLabel": "serious",
+            "color": "COLORS.red",
+            "lightColor": "rgba(248,92,111,0.18)"
+        },
+        {
+            "id": "critical",
+            "label": "Critical",
+            "subLabel": "severe",
+            "color": "COLORS.danger",
+            "lightColor": "rgba(255,74,92,0.18)"
+        }
+    ],
+    "PEOPLE_GROUPS": [
+        {
+            "id": "seniors",
+            "label": "Seniors"
+        },
+        {
+            "id": "kids",
+            "label": "Kids (below 12)"
+        },
+        {
+            "id": "pregnant",
+            "label": "Pregnant"
+        },
+        {
+            "id": "adults",
+            "label": "Adults (Male / Female)"
+        },
+        {
+            "id": "animals",
+            "label": "Animals"
+        }
+    ],
+    "BARANGAY_OPTIONS": [
+        "Poblacion",
+        "San Isidro",
+        "San Roque",
+        "Santa Cruz",
+        "Mabini"
+    ]
+}
