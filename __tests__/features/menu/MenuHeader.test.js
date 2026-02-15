@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import MenuHeader from '../../../../package/src/features/menu/components/MenuHeader';
+import MenuHeader from '../../../package/src/features/menu/components/MenuHeader';
 
 describe('MenuHeader', () => {
     it('renders without crashing', () => {

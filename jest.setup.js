@@ -91,7 +91,7 @@ jest.mock("react-native-simple-toast", () => {
 jest.mock("react-native-permissions", () => ({
   check: jest.fn(async () => "granted"),
   request: jest.fn(async () => "granted"),
-  openSettings: jest.fn(async () => {}),
+  openSettings: jest.fn(async () => { }),
   PERMISSIONS: {
     ANDROID: {
       READ_EXTERNAL_STORAGE: "android.permission.READ_EXTERNAL_STORAGE",
@@ -123,3 +123,11 @@ jest.mock("react-native-webview", () => ({
     return React.createElement(View, props);
   },
 }));
+jest.mock('@twotalltotems/react-native-otp-input', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return function MockOTPInputView(props) {
+    return React.createElement(View, props);
+  };
+});

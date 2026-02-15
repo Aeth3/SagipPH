@@ -9,4 +9,5 @@ module.exports = {
   transformIgnorePatterns: [
     "node_modules/(?!(react-native|react-native-.*|@react-native|@react-navigation|@fortawesome|@ptomasroos)/)",
   ],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };

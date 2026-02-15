@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import FieldGenerator from '../../../../package/components/FieldGenerator';
+import FieldGenerator from '../../package/components/FieldGenerator';
 
 describe('FieldGenerator', () => {
     it('renders without crashing', () => {

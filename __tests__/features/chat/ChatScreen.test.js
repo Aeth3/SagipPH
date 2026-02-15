@@ -1,6 +1,7 @@
 import React from "react";
 import renderer, { act } from "react-test-renderer";
 import { TextInput } from "react-native";
+import { NavigationContainer } from '@react-navigation/native';
 import ChatScreen from "../../../package/src/features/Chat/ChatScreen";
 
 const mockSend = jest.fn();
@@ -85,7 +86,11 @@ describe("ChatScreen", () => {
 
   const renderScreen = async () => {
     await act(async () => {
-      tree = renderer.create(<ChatScreen route={{ params: {} }} />);
+      tree = renderer.create(
+        <NavigationContainer>
+          <ChatScreen route={{ params: {} }} />
+        </NavigationContainer>
+      );
     });
   };
 
@@ -118,7 +123,11 @@ describe("ChatScreen", () => {
 
   it("triggers clear and load handlers from route params", async () => {
     await act(async () => {
-      tree = renderer.create(<ChatScreen route={{ params: { newChat: true, loadChatId: "chat-123" } }} />);
+      tree = renderer.create(
+        <NavigationContainer>
+          <ChatScreen route={{ params: { newChat: true, loadChatId: "chat-123" } }} />
+        </NavigationContainer>
+      );
     });
     expect(mockClearChat).toHaveBeenCalled();
     expect(mockLoadChat).toHaveBeenCalledWith("chat-123");
