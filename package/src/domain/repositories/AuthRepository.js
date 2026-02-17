@@ -1,84 +1,29 @@
-/**
- * Domain contract for auth operations.
- * Outer layers must provide a concrete implementation.
- */
 export class AuthRepository {
-  /**
-   * @returns {Promise<{user: Object, session: Object}>}
-   */
-  async signInWithPassword(_credentials) {
-    throw new Error("AuthRepository.signInWithPassword() not implemented");
+  /** @returns {Promise<{ user: Object, session: Object }>} */
+  async signIn(_credentials) {
+    throw new Error("AuthRepository.signIn() not implemented");
   }
 
-  /**
-   * @returns {Promise<{user: Object, session: Object|null}>}
-   */
+  /** @returns {Promise<{ user: Object, session: Object | null }>} */
   async signUp(_payload) {
     throw new Error("AuthRepository.signUp() not implemented");
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
+  /** @returns {Promise<void>} */
   async signOut() {
     throw new Error("AuthRepository.signOut() not implemented");
   }
 
-  /**
-   * @returns {Promise<Object|null>}
-   */
+  /** @returns {Promise<Object | null>} */
   async getCurrentUser() {
     throw new Error("AuthRepository.getCurrentUser() not implemented");
   }
 
   /**
-   * @returns {Promise<void>}
-   */
-  async requestPasswordReset(_payload) {
-    throw new Error("AuthRepository.requestPasswordReset() not implemented");
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async verifyRecoveryCode(_payload) {
-    throw new Error("AuthRepository.verifyRecoveryCode() not implemented");
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async updatePassword(_payload) {
-    throw new Error("AuthRepository.updatePassword() not implemented");
-  }
-  async sendOtp(_payload) {
-    throw new Error('AuthRepository.sendOtp() not implemented');
-  }
-
-  async verifyOtp(_payload) {
-    throw new Error('AuthRepository.verifyOtp() not implemented');
-  }
-
-  /**
-   * Refresh the session using a refresh token.
-   * @param {string} refreshToken
-   * @returns {Promise<{access_token: string, refresh_token: string}>}
+   * @param {string} _refreshToken
+   * @returns {Promise<{ access_token: string, refresh_token: string }>}
    */
   async refreshSession(_refreshToken) {
-    throw new Error('AuthRepository.refreshSession() not implemented');
-  }
-
-  async getClientToken(_name) {
-    throw new Error('AuthRepository.getClientToken() not implemented');
-  }
-
-  async registerUser(_payload) {
-    throw new Error('AuthRepository.registerUser() not implemented');
-  }
-
-  async loginUser(_payload) {
-    throw new Error('AuthRepository.loginUser() not implemented');
+    throw new Error("AuthRepository.refreshSession() not implemented");
   }
 }
-
-

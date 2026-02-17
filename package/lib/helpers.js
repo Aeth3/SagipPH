@@ -549,3 +549,37 @@ export const generateDateTimeId = (prefix = "user") => {
     const rand = Math.random().toString(36).slice(2, 8); // 6 chars
     return `${prefix}_${ts}_${rand}`;
 };
+
+export function parseDispatchFromReply(reply, chatId) {
+    if (!reply?.toUpperCase().includes("CONFIRMED_DISPATCH")) {
+        return null;
+    }
+
+    const block = reply.split("CONFIRMED_DISPATCH:")[1];
+    if (!block) return null;
+
+    const payload = {
+        id: `dispatch_${Date.now()}`,
+        chatId: chatId,
+    };
+
+    const lines = block
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+    for (const line of lines) {
+        const match = line.match(/^->\s*(.+?)\|\s*(.+)$/);
+        if (!match) continue;
+
+        const label = match[1].toLowerCase().trim();
+        const value = match[2].trim();
+
+        // Normalize only fields you care about
+        if (label.includes("emergency type")) {
+            payload.type = value;
+        }
+    }
+
+    return payload;
+}

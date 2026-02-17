@@ -45,7 +45,7 @@ export const useOtpVerificationController = () => {
     };
 
     const handleConfirm = () =>
-        setModalInfo((prev) => ({ ...prev, show: false }));
+        setModalInfo({ show: false, title: "", message: "" });
 
     return { phone, handleVerify, handleResend, handleBack, modalInfo, handleConfirm };
 };

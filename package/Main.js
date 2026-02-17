@@ -12,7 +12,6 @@ export default function Main() {
         initializeOfflineSync();
         return () => {
             disposeOfflineSync();
-            stopLoanSyncOnReconnect();
         };
     }, []);
 

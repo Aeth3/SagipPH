@@ -29,7 +29,7 @@ import SendSMS from "react-native-sms";
 import { useNavigation } from "@react-navigation/native";
 import SearchableDropdown from "../../../components/ui/SearchableDropdown";
 import chatConfig from "./config.json";
-
+import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
 
 const SUGGESTION_CHIPS = chatConfig.SUGGESTION_CHIPS;
 const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
@@ -549,7 +549,12 @@ export default function ChatScreen({ route }) {
     const { messages, isLoading, send, clearChat, loadChat, scrollViewRef } = useChatController();
     const { isOnline } = useOfflineStatus();
     const hasAutoClearedOfflineRef = useRef(false);
+    const { coords, error } = useLiveLocation();
 
+    useEffect(()=>{
+        console.log("coords",coords);
+        
+    },[coords, error])
     useEffect(() => {
         if (route?.params?.newChat) {
             clearChat();
@@ -765,7 +770,6 @@ export default function ChatScreen({ route }) {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
                 <ChatHeader />
-
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollArea}

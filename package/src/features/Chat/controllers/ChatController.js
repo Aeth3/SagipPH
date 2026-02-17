@@ -1,3 +1,5 @@
+// ...existing code...
+import { sendDispatchMessage } from "../../../composition/dispatchMessage";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { sendMessage as sendGeminiMessage, resetChat as resetGeminiChat, generateChatTitleFromContext } from "../../../services/geminiService";
 import {
@@ -8,12 +10,14 @@ import {
     sendMessage as persistMessage,
 } from "../../../composition/chat";
 import { MESSAGE_SENDERS } from "../../../domain/entities/Message";
-
+import { parseDispatchFromReply } from "package/lib/helpers";
+import {getCurrentLocation} from "../../../../utils/getCurrentLocation"
 /**
  * ChatController — manages conversation state, Gemini communication,
  * and SQLite persistence via the composition layer.
  */
 export default function useChatController() {
+    const [dispatchStatus, setDispatchStatus] = useState(null); // null | 'success' | 'error'
     const [chatId, setChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -113,6 +117,34 @@ export default function useChatController() {
                 // Persist bot reply
                 persist(MESSAGE_SENDERS.BOT, reply);
 
+                // ── Detect and handle CONFIRMED_DISPATCH ──
+                const payload = parseDispatchFromReply(reply, chatId);
+                console.log("payload", payload);
+
+                if (payload) {
+                    try {
+                        const gps = await getCurrentLocation();
+
+                        payload.geotag = {
+                            lat: gps.latitude,
+                            lng: gps.longitude,
+                            accuracy: gps.accuracy,
+                        };
+                        payload.content = reply
+                    } catch (e) {
+                        console.warn("GPS unavailable:", e.message);
+                    }
+
+                    const result = await sendDispatchMessage(payload);
+                    console.log("result", result);
+                    
+                    if (result.ok) setDispatchStatus("success");
+                    else setDispatchStatus("error");
+                } else {
+                    setDispatchStatus(null);
+                }
+
+
                 // Refresh title based on recent chat context.
                 if (chatId) {
                     const contextMessages = [...messages, userMsg, assistantMsg];
@@ -200,5 +232,6 @@ export default function useChatController() {
         clearChat,
         loadChat,
         scrollViewRef,
+        dispatchStatus,
     };
 }

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { Alert } from "react-native";
+import { requestLocationPermission, getCurrentPosition } from "../../lib/geolocationHelper";
 import { DrawerContentScrollView, useDrawerStatus } from "@react-navigation/drawer";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +13,9 @@ import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
 import { useOfflineStatus } from "../../src/presentation/hooks/useOfflineStatus";
 import { COLORS } from "package/src/legacyApp";
 import { getChats, clearChats } from "../../src/composition/chat"
+import { getCurrentLocation } from "../../utils/getCurrentLocation"
+
+const MAX_VISIBLE_HISTORY = 5;
 
 export default function CustomDrawer({ navigation, logout }) {
     const { isOnline } = useOfflineStatus();
@@ -19,7 +24,6 @@ export default function CustomDrawer({ navigation, logout }) {
     const [chatHistory, setChatHistory] = useState([]);
     const { showAlert, alertModal } = useAlertModal();
 
-    const MAX_VISIBLE_HISTORY = 5;
     const state = useNavigationState((state) => state);
     const currentRoute = state.routes[state.index]?.name;
     const isChatHistoryExpanded = expanded.ChatHistory;
@@ -110,6 +114,7 @@ export default function CustomDrawer({ navigation, logout }) {
         <>
             <ProfileHeader propStyles={{ marginTop: 20, backgroundColor: COLORS.white }} />
             <View style={styles.menu}>
+
                 {drawerRoutes.map((route) => {
                     const hasChildren = Array.isArray(route.children);
                     const isParentActive =
@@ -216,11 +221,37 @@ export default function CustomDrawer({ navigation, logout }) {
                                     style={[styles.parentItem, !route.disableSelected && currentRoute === route.name && styles.activeItem]}
                                     onPress={() => {
                                         if (route.disableSelected) {
-                                            // "New Chat" — navigate with a unique timestamp to trigger clearChat
-                                            navigation.navigate(route.name, {
-                                                screen: "Chat",
-                                                params: { newChat: Date.now() },
-                                            });
+                                            // Prevent new chat if current chat has 0 messages
+                                            (async () => {
+                                                try {
+                                                    const chatsResult = await getChats();
+                                                    if (chatsResult.ok && chatsResult.value.length > 0) {
+                                                        const currentChat = chatsResult.value[0];
+                                                        // Fetch messages for the most recent chat
+                                                        const messagesResult = await import("../../src/composition/chat").then(m => m.getMessages(currentChat.id));
+                                                        if (messagesResult.ok && messagesResult.value.length === 0) {
+                                                            showAlert(
+                                                                "Cannot create new chat",
+                                                                "You cannot start a new chat while the current chat has 0 messages.",
+                                                                [{ text: "OK" }],
+                                                                { type: "warning" }
+                                                            );
+                                                            return;
+                                                        }
+                                                    }
+                                                    navigation.navigate(route.name, {
+                                                        screen: "Chat",
+                                                        params: { newChat: Date.now() },
+                                                    });
+                                                } catch (err) {
+                                                    showAlert(
+                                                        "Error",
+                                                        "Unable to check chat messages. Please try again.",
+                                                        [{ text: "OK" }],
+                                                        { type: "warning" }
+                                                    );
+                                                }
+                                            })();
                                         } else {
                                             navigation.navigate(route.name);
                                         }
@@ -239,13 +270,13 @@ export default function CustomDrawer({ navigation, logout }) {
                 <View style={styles.divider} />
 
                 {/* 🚪 Logout Button */}
-                {/* <TouchableOpacity
+                <TouchableOpacity
                     style={styles.logoutItem}
                     onPress={handleLogout}
                 >
                     <FontAwesomeIcon icon={faRightFromBracket} size={16} color={COLORS.danger} />
                     <Text style={[styles.logoutText, { color: COLORS.danger }]}>Logout</Text>
-                </TouchableOpacity> */}
+                </TouchableOpacity>
             </View>
 
             {/* Chat History Modal */}

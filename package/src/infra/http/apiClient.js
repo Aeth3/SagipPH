@@ -87,6 +87,8 @@ apiClient.interceptors.request.use(
     }
 
     const token = await accessTokenProvider();
+    console.log("token", token);
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
