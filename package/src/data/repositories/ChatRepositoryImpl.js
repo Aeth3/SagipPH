@@ -14,13 +14,13 @@ export class ChatRepositoryImpl extends ChatRepository {
 
     // ── Chat Reads ─────────────────────────────────────────────────────
 
-    async getChats() {
-        const rows = await chatDS.getAllChats();
+    async getChats(userId) {
+        const rows = await chatDS.getAllChats(userId);
         return rows.map((r) => Chat.fromDTO(r));
     }
 
-    async getChatById(id) {
-        const row = await chatDS.getChatByLocalId(id);
+    async getChatById(id, userId) {
+        const row = await chatDS.getChatByLocalId(id, userId);
         if (!row) return null;
         return Chat.fromDTO(row);
     }
@@ -45,10 +45,21 @@ export class ChatRepositoryImpl extends ChatRepository {
         return { success: true };
     }
 
-    async clearChats() {
-        // Clear children first for DBs where FK cascade may not be enforced.
-        await messageDS.deleteAllMessages();
-        const deletedCount = await chatDS.deleteAllChats();
+    async clearChats(userId) {
+        const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+
+        if (userId === undefined) {
+            await messageDS.deleteAllMessages();
+            const deletedCount = await chatDS.deleteAllChats();
+            return { success: true, deletedCount };
+        }
+        if (!normalizedUserId) return { success: true, deletedCount: 0 };
+
+        const scopedChats = await chatDS.getAllChats(normalizedUserId);
+        for (const chat of scopedChats) {
+            await messageDS.deleteMessagesByChatId(chat.local_id || chat.id);
+        }
+        const deletedCount = await chatDS.deleteAllChatsByUserId(normalizedUserId);
         return { success: true, deletedCount };
     }
 

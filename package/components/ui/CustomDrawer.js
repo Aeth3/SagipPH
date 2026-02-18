@@ -13,6 +13,7 @@ import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
 import { useOfflineStatus } from "../../src/presentation/hooks/useOfflineStatus";
 import { COLORS } from "package/src/legacyApp";
 import { getChats, clearChats } from "../../src/composition/chat"
+import { getCurrentUser } from "../../src/composition/authSession";
 import { getCurrentLocation } from "../../utils/getCurrentLocation"
 
 const MAX_VISIBLE_HISTORY = 5;
@@ -22,6 +23,7 @@ export default function CustomDrawer({ navigation, logout }) {
     const [expanded, setExpanded] = useState({});
     const [showAllHistory, setShowAllHistory] = useState(false);
     const [chatHistory, setChatHistory] = useState([]);
+    const [currentUserId, setCurrentUserId] = useState(null);
     const { showAlert, alertModal } = useAlertModal();
 
     const state = useNavigationState((state) => state);
@@ -29,10 +31,18 @@ export default function CustomDrawer({ navigation, logout }) {
     const isChatHistoryExpanded = expanded.ChatHistory;
     const drawerStatus = useDrawerStatus();
 
+    useEffect(() => {
+        (async () => {
+            const userResult = await getCurrentUser();
+            const userId = userResult?.ok ? userResult?.value?.id || null : null;
+            setCurrentUserId(userId);
+        })();
+    }, []);
+
     // Fetch chat history whenever the drawer opens
     const loadChatHistory = useCallback(async () => {
         try {
-            const result = await getChats();
+            const result = await getChats(currentUserId);
             if (result.ok) {
                 // Show all persisted chats, including newly created ones with default title.
                 setChatHistory(result.value || []);
@@ -40,7 +50,7 @@ export default function CustomDrawer({ navigation, logout }) {
         } catch (err) {
             console.warn("[CustomDrawer] Failed to load chat history:", err);
         }
-    }, []);
+    }, [currentUserId]);
 
     useEffect(() => {
         loadChatHistory();
@@ -71,7 +81,7 @@ export default function CustomDrawer({ navigation, logout }) {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            const result = await clearChats();
+                            const result = await clearChats(currentUserId);
                             if (!result?.ok) {
                                 throw new Error(result?.error?.message || "Failed to clear chats");
                             }
@@ -90,7 +100,7 @@ export default function CustomDrawer({ navigation, logout }) {
             ],
             { type: "confirm" }
         );
-    }, [loadChatHistory, navigation, showAlert]);
+    }, [currentUserId, loadChatHistory, navigation, showAlert]);
 
     const handleLogout = useCallback(() => {
         showAlert(
@@ -221,28 +231,32 @@ export default function CustomDrawer({ navigation, logout }) {
                                     style={[styles.parentItem, !route.disableSelected && currentRoute === route.name && styles.activeItem]}
                                     onPress={() => {
                                         if (route.disableSelected) {
-                                            // Prevent new chat if current chat has 0 messages
                                             (async () => {
                                                 try {
-                                                    const chatsResult = await getChats();
+                                                    const chatsResult = await getChats(currentUserId);
+
                                                     if (chatsResult.ok && chatsResult.value.length > 0) {
                                                         const currentChat = chatsResult.value[0];
-                                                        // Fetch messages for the most recent chat
-                                                        const messagesResult = await import("../../src/composition/chat").then(m => m.getMessages(currentChat.id));
+
+                                                        const { getMessages } = await import("../../src/composition/chat");
+                                                        const messagesResult = await getMessages(currentChat.id);
+
+                                                        // ✅ If newest chat is empty → open it instead of alerting
                                                         if (messagesResult.ok && messagesResult.value.length === 0) {
-                                                            showAlert(
-                                                                "Cannot create new chat",
-                                                                "You cannot start a new chat while the current chat has 0 messages.",
-                                                                [{ text: "OK" }],
-                                                                { type: "warning" }
-                                                            );
+                                                            navigation.navigate("ChatStack", {
+                                                                screen: "Chat",
+                                                                params: { loadChatId: currentChat.id },
+                                                            });
                                                             return;
                                                         }
                                                     }
+
+                                                    // ✅ Otherwise create a brand new chat
                                                     navigation.navigate(route.name, {
                                                         screen: "Chat",
                                                         params: { newChat: Date.now() },
                                                     });
+
                                                 } catch (err) {
                                                     showAlert(
                                                         "Error",
@@ -252,7 +266,8 @@ export default function CustomDrawer({ navigation, logout }) {
                                                     );
                                                 }
                                             })();
-                                        } else {
+                                        }
+                                        else {
                                             navigation.navigate(route.name);
                                         }
                                     }}

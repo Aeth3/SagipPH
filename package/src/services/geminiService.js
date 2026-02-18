@@ -1,51 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_API_KEY } from "@env";
-import { isGroqAvailable, sendMessageViaGroq, resetGroqChat, generateTitleViaGroq } from "./groqService";
+import { GEMINI_API_KEY, SYSTEM_INSTRUCTION } from "@env";
+import { isGroqAvailable, sendMessageViaGroq, resetGroqChat, generateTitleViaGroq, extractDispatchStateViaGroq } from "./groqService";
 
-const SYSTEM_INSTRUCTION = `You are an Emergency Dispatcher called SagipPH AI. Your priority is to help citizens during disasters (Floods, Fires, Earthquakes, and other emergency matters).
-      
-      CRITICAL INFORMATION NEEDED:
-      1. EXACT LOCATION: Barangay and Purok/Street.
-      2. EMERGENCY TYPE: What is happening? (e.g., Flood, Fire).
-      3. CONTACT NUMBER: A working phone number to verify and coordinate.
-      4. BILANG NG TAO/PWD: "Ilan ang kailangang i-rescue? May bata, matanda, o PWD ba sa lokasyon?"
-      5. CURRENT STATUS: "Ligtas ba kayo sa kinalalagyan niyo ngayon?"
-
-      INSTRUCTIONS:
-      - If the user provides a location like "Barangay Saray Purok 2", check if they mentioned the situation and contact info.
-      - If contact info is missing, POLITELY ASK for a mobile number.
-      - Keep responses calm, brief, and urgent.
-      - If the situation sounds life-threatening (trapped, rising water, fire spreading), increase urgency in your tone.
-      - Once ALL information (Location, Situation, Contact) is gathered, tell the user: "CONFIRMED_DISPATCH: [Summary of details]". 
-     
-      URGENCY LOGIC:
-      - Set to HIGH if: May Fire, Trapped, Buntis, PWD, Injured, or Rising Water Level.
-      - Set to MEDIUM/LOW if: Safe location pero kailangan ng evacuation assistance.
-      
-      CONFIRMED_DISPATCH TEMPLATE:
-      Once ALL info is gathered, output exactly this format:
-      CONFIRMED_DISPATCH:
-      -> Location| [Location]
-      -> Contact No| [Number]
-      -> Emergency Type| [Type]
-      -> Current Status| [Status]
-      -> Urgency| [High/Low/Moderate]
-      -> Name| [Name or 'N/A']
-      -> Pregnant| [No. or 0]
-      -> Bata| [No. or 0]
-      -> PWD| [No. or 0]
-      -> Adult| [No. or 0]
-      -> Animals| [No. or 0]
-      -> Total| [Automatic sum of all people mentioned]
-     
-      SAFETY INSTRUCTIONS (Trigger words):
-      - IMMEDIATE SAFETY ADVICE: "Habang hinihintay ang tulong, bigyan ang user ng maikling instructions (hal. 'Umakyat sa pinakamataas na palapag' o 'Huwag hawakan ang mga switch ng kuryente')."
-      - STAY ON THE LINE: "Sabihan ang user na huwag papatayin ang phone o i-low power mode ito para sa coordination."
-      - BAHA: "I-off ang main switch ng kuryente. Umakyat sa mataas na lugar."
-      - SUNOG: "Huwag nang balikan ang mga gamit. Lumabas agad at takpan ang ilong ng basang tela."
-      - TRAPPED: "Manatiling maingay o gumamit ng flashlight para madaling makita ng rescuers."
-
-      `;
 
 const PRIMARY_MODEL = "gemini-3-pro-preview";
 const FALLBACK_MODEL = "gemini-2.0-flash-lite";
@@ -281,4 +237,100 @@ export function resetChat() {
     activeModel = PRIMARY_MODEL;
     usingGroqFallback = false;
     resetGroqChat();
+}
+
+function safeParseJSONFromText(text) {
+    if (typeof text !== "string") return null;
+    const trimmed = text.trim();
+    if (!trimmed) return null;
+
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const candidate = fenced?.[1] || trimmed;
+
+    try {
+        return JSON.parse(candidate);
+    } catch (_) {
+        const start = candidate.indexOf("{");
+        const end = candidate.lastIndexOf("}");
+        if (start < 0 || end <= start) return null;
+        try {
+            return JSON.parse(candidate.slice(start, end + 1));
+        } catch {
+            return null;
+        }
+    }
+}
+
+export async function extractDispatchState(messages = []) {
+    const normalized = messages
+        .filter((m) => typeof m?.text === "string" && m.text.trim())
+        .slice(-20)
+        .map((m) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.text.trim()}`)
+        .join("\n");
+
+    if (!normalized) {
+        return { ready: false, missing: ["barangay", "street", "situation", "sender"], content: null };
+    }
+
+    const prompt =
+        "Extract dispatch state from this conversation.\n" +
+        "Return JSON only with this exact shape:\n" +
+        "{\n" +
+        '  "ready": boolean,\n' +
+        '  "missing": string[],\n' +
+        '  "content": {\n' +
+        '    "sender": string|null,\n' +
+        '    "barangay": string|null,\n' +
+        '    "street": string|null,\n' +
+        '    "situation": string|null,\n' +
+        '    "name": string|null,\n' +
+        '    "emergencyType": string|null,\n' +
+        '    "riskLevel": string|null,\n' +
+        '    "otherContactNo": string|null,\n' +
+        '    "pregnant": number,\n' +
+        '    "senior": number,\n' +
+        '    "twoYearsOldBelow": number,\n' +
+        '    "kids": number,\n' +
+        '    "pwd": number,\n' +
+        '    "adult": number,\n' +
+        '    "animals": number,\n' +
+        '    "total": number\n' +
+        "  }\n" +
+        "}\n" +
+        "Rules:\n" +
+        "- Never infer or invent missing values.\n" +
+        "- If a value is not explicitly given by the user, set it to null (or 0 for numbers).\n" +
+        "- Set ready=true only when sender, location, street, and situation are explicitly present.\n" +
+        "- If any required value is missing, set ready=false and include those keys in missing.\n" +
+        `Conversation:\n${normalized}`;
+
+    try {
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+        const res = await model.generateContent(prompt);
+        const raw = res.response.text();
+        const parsed = safeParseJSONFromText(raw);
+
+        if (!parsed || typeof parsed !== "object") {
+            return { ready: false, missing: ["barangay", "street", "situation", "sender"], content: null };
+        }
+
+        return {
+            ready: parsed.ready === true,
+            missing: Array.isArray(parsed.missing) ? parsed.missing : [],
+            content: parsed.content && typeof parsed.content === "object" ? parsed.content : null,
+        };
+    } catch (error) {
+        console.warn("[geminiService] extractDispatchState error:", error);
+
+        if (isGroqAvailable()) {
+            try {
+                return await extractDispatchStateViaGroq(messages);
+            } catch (groqError) {
+                console.warn("[geminiService] extractDispatchState groq fallback error:", groqError);
+            }
+        }
+
+        return { ready: false, missing: ["barangay", "street", "situation", "sender"], content: null };
+    }
 }

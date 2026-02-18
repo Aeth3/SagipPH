@@ -1,8 +1,9 @@
 import { ok, fail } from "../shared/result";
 
 export class Chat {
-    constructor({ id, title, messages = [], createdAt } = {}) {
+    constructor({ id, userId, title, messages = [], createdAt } = {}) {
         this.id = id;
+        this.userId = userId;
         this.title = title;
         this.messages = messages;
         this.createdAt = createdAt;
@@ -23,6 +24,7 @@ export class Chat {
     static fromDTO(raw = {}) {
         return new Chat({
             id: raw.id ?? raw.local_id ?? null,
+            userId: raw.user_id ?? raw.userId ?? null,
             title: raw.title ?? "",
             messages: Array.isArray(raw.messages) ? raw.messages : [],
             createdAt: raw.created_at || raw.createdAt || null,
@@ -32,6 +34,7 @@ export class Chat {
     toDTO() {
         return {
             id: this.id,
+            user_id: this.userId,
             title: this.title,
             messages: this.messages,
             created_at: this.createdAt,

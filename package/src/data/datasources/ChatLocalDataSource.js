@@ -20,25 +20,48 @@ let tableReady = false;
 const ensureChatsTable = async () => {
     if (tableReady) return;
     await ensureTable(CHATS_TABLE, CHATS_TABLE_COLUMNS);
+    // Backward compatibility for existing installs created before `user_id` existed.
+    const { rows: columns } = await executeSql(`PRAGMA table_info(${CHATS_TABLE})`);
+    const hasUserId = columns.some((col) => col?.name === "user_id");
+    if (!hasUserId) {
+        await executeSql(`ALTER TABLE ${CHATS_TABLE} ADD COLUMN user_id TEXT`);
+    }
     tableReady = true;
 };
 
-export const getAllChats = async () => {
+export const getAllChats = async (userId) => {
     await ensureChatsTable();
+    if (userId !== undefined && !(typeof userId === "string" && userId.trim())) {
+        console.log(`${TAG} getAllChats(userId=missing) -> 0 rows`);
+        return [];
+    }
+    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+    const hasUserScope = normalizedUserId.length > 0;
     const { rows } = await executeSql(
-        `SELECT * FROM ${CHATS_TABLE} ORDER BY created_at DESC`
+        hasUserScope
+            ? `SELECT * FROM ${CHATS_TABLE} WHERE user_id = ? ORDER BY created_at DESC`
+            : `SELECT * FROM ${CHATS_TABLE} ORDER BY created_at DESC`,
+        hasUserScope ? [normalizedUserId] : []
     );
-    console.log(`${TAG} getAllChats -> ${rows.length} rows`, rows);
+    console.log(`${TAG} getAllChats(userId=${normalizedUserId || "all"}) -> ${rows.length} rows`, rows);
     return rows;
 };
 
-export const getChatByLocalId = async (localId) => {
+export const getChatByLocalId = async (localId, userId) => {
     await ensureChatsTable();
+    if (userId !== undefined && !(typeof userId === "string" && userId.trim())) {
+        console.log(`${TAG} getChatByLocalId(${localId}, userId=missing) -> null`);
+        return null;
+    }
+    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+    const hasUserScope = normalizedUserId.length > 0;
     const { rows } = await executeSql(
-        `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ?`,
-        [localId]
+        hasUserScope
+            ? `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ? AND user_id = ?`
+            : `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ?`,
+        hasUserScope ? [localId, normalizedUserId] : [localId]
     );
-    console.log(`${TAG} getChatByLocalId(${localId}) ->`, rows[0] ?? null);
+    console.log(`${TAG} getChatByLocalId(${localId}, userId=${normalizedUserId || "all"}) ->`, rows[0] ?? null);
     return rows[0] ?? null;
 };
 
@@ -51,13 +74,17 @@ export const insertChat = async (data) => {
     await ensureChatsTable();
     const localId = uuid();
     const createdAt = now();
+    const userId =
+        typeof data?.user_id === "string" && data.user_id.trim()
+            ? data.user_id.trim()
+            : (typeof data?.userId === "string" ? data.userId.trim() : "");
 
-    console.log(`${TAG} insertChat -> local_id=${localId}, title="${data.title}"`);
+    console.log(`${TAG} insertChat -> local_id=${localId}, user_id=${userId || "none"}, title="${data.title}"`);
     await executeSql(
         `INSERT INTO ${CHATS_TABLE}
-       (local_id, title, created_at)
-     VALUES (?, ?, ?)`,
-        [localId, data.title, createdAt]
+       (local_id, user_id, title, created_at)
+     VALUES (?, ?, ?, ?)`,
+        [localId, userId || null, data.title, createdAt]
     );
 
     return getChatByLocalId(localId);
@@ -123,5 +150,18 @@ export const deleteAllChats = async () => {
         `DELETE FROM ${CHATS_TABLE}`
     );
     console.log(`${TAG} deleteAllChats -> rowsAffected=${rowsAffected}`);
+    return rowsAffected;
+};
+
+export const deleteAllChatsByUserId = async (userId) => {
+    await ensureChatsTable();
+    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+    if (!normalizedUserId) return 0;
+    console.log(`${TAG} deleteAllChatsByUserId(${normalizedUserId})`);
+    const { rowsAffected } = await executeSql(
+        `DELETE FROM ${CHATS_TABLE} WHERE user_id = ?`,
+        [normalizedUserId]
+    );
+    console.log(`${TAG} deleteAllChatsByUserId -> rowsAffected=${rowsAffected}`);
     return rowsAffected;
 };

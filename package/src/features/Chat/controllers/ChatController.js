@@ -1,7 +1,12 @@
 // ...existing code...
 import { sendDispatchMessage } from "../../../composition/dispatchMessage";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { sendMessage as sendGeminiMessage, resetChat as resetGeminiChat, generateChatTitleFromContext } from "../../../services/geminiService";
+import {
+    sendMessage as sendGeminiMessage,
+    resetChat as resetGeminiChat,
+    generateChatTitleFromContext,
+    extractDispatchState,
+} from "../../../services/geminiService";
 import {
     getChats,
     createChat,
@@ -9,20 +14,27 @@ import {
     getMessages as fetchMessages,
     sendMessage as persistMessage,
 } from "../../../composition/chat";
+import { getCurrentUser } from "../../../composition/authSession";
 import { MESSAGE_SENDERS } from "../../../domain/entities/Message";
-import { parseDispatchFromReply } from "package/lib/helpers";
-import {getCurrentLocation} from "../../../../utils/getCurrentLocation"
+import {
+    buildConfirmedDispatchBlock,
+    parseDispatchFromReply,
+    validateDispatchContent,
+} from "package/lib/helpers";
+import { getCurrentLocation } from "../../../../utils/getCurrentLocation";
+
 /**
- * ChatController — manages conversation state, Gemini communication,
+ * ChatController - manages conversation state, AI communication,
  * and SQLite persistence via the composition layer.
  */
 export default function useChatController() {
-    const [dispatchStatus, setDispatchStatus] = useState(null); // null | 'success' | 'error'
+    const [dispatchStatus, setDispatchStatus] = useState(null); // null | "success" | "error"
     const [chatId, setChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [chatTitle, setChatTitle] = useState("SagipPH Chat");
+    const [currentUserId, setCurrentUserId] = useState(null);
     const scrollViewRef = useRef(null);
 
     const scrollToEnd = useCallback(() => {
@@ -31,19 +43,22 @@ export default function useChatController() {
         }, 100);
     }, []);
 
-    // ── Bootstrap: load or create a chat on mount ──────────────────────
+    // Bootstrap: load or create a chat on mount
     useEffect(() => {
         const init = async () => {
             try {
-                const chatsResult = await getChats();
+                const userResult = await getCurrentUser();
+                const userId = userResult?.ok ? userResult?.value?.id || null : null;
+                setCurrentUserId(userId);
+                const chatsResult = await getChats(userId);
                 let activeChat = null;
 
                 if (chatsResult.ok && chatsResult.value.length > 0) {
                     // Resume the most recent chat
                     activeChat = chatsResult.value[0];
                 } else {
-                    // First launch — create a default chat
-                    const createResult = await createChat({ title: "SagipPH Chat" });
+                    // First launch - create a default chat
+                    const createResult = await createChat({ title: "SagipPH Chat", userId });
                     if (createResult.ok) activeChat = createResult.value;
                 }
 
@@ -72,7 +87,7 @@ export default function useChatController() {
         init();
     }, []);
 
-    // ── Persist a single message to SQLite ─────────────────────────────
+    // Persist a single message to SQLite
     const persist = useCallback(
         async (sender, content) => {
             if (!chatId) return;
@@ -81,7 +96,7 @@ export default function useChatController() {
         [chatId]
     );
 
-    // ── Send a message ────────────────────────────────────────────────
+    // Send a message
     const send = useCallback(
         async (text) => {
             const trimmed = text.trim();
@@ -104,22 +119,46 @@ export default function useChatController() {
 
             try {
                 const reply = await sendGeminiMessage(trimmed);
+                const extractionContext = [...messages, userMsg, { role: "assistant", text: reply }];
+                const extracted = await extractDispatchState(extractionContext);
+                const extractedValidation = validateDispatchContent(extracted?.content);
+                const canDispatchFromExtraction = extracted?.ready && extractedValidation.ready;
+                const hasConfirmedDispatch = /CONFIRMED_DISPATCH/i.test(reply);
+
+                let finalReply = reply;
+                if (canDispatchFromExtraction && !hasConfirmedDispatch) {
+                    const confirmedBlock = buildConfirmedDispatchBlock(extractedValidation.content);
+                    finalReply = `${reply.trim()}\n\n${confirmedBlock}`;
+                }
 
                 const assistantMsg = {
                     id: `local_${Date.now()}_bot`,
                     role: "assistant",
-                    text: reply,
+                    text: finalReply,
                     timestamp: Date.now(),
                 };
 
                 setMessages((prev) => [...prev, assistantMsg]);
 
                 // Persist bot reply
-                persist(MESSAGE_SENDERS.BOT, reply);
+                persist(MESSAGE_SENDERS.BOT, finalReply);
 
-                // ── Detect and handle CONFIRMED_DISPATCH ──
-                const payload = parseDispatchFromReply(reply, chatId);
-                console.log("payload", payload);
+                // Prefer structured extraction; fall back to text parser
+                let payload = null;
+                if (canDispatchFromExtraction) {
+                    payload = {
+                        id: `dispatch_${Date.now()}`,
+                        chatId,
+                        type: "dispatch",
+                        content: extractedValidation.content,
+                    };
+                } else {
+                    const parsedPayload = parseDispatchFromReply(finalReply, chatId);
+                    const parsedValidation = validateDispatchContent(parsedPayload?.content);
+                    payload = parsedValidation.ready
+                        ? { ...parsedPayload, content: parsedValidation.content }
+                        : null;
+                }
 
                 if (payload) {
                     try {
@@ -130,25 +169,29 @@ export default function useChatController() {
                             lng: gps.longitude,
                             accuracy: gps.accuracy,
                         };
-                        payload.content = reply
+                        payload.rawData = finalReply;
+                        payload.type = "CHAT"
+                        console.log("payload", payload);
+
                     } catch (e) {
                         console.warn("GPS unavailable:", e.message);
                     }
 
                     const result = await sendDispatchMessage(payload);
-                    console.log("result", result);
-                    
+
                     if (result.ok) setDispatchStatus("success");
                     else setDispatchStatus("error");
                 } else {
                     setDispatchStatus(null);
                 }
 
-
                 // Refresh title based on recent chat context.
                 if (chatId) {
-                    const contextMessages = [...messages, userMsg, assistantMsg];
-                    const generatedTitle = await generateChatTitleFromContext(contextMessages);
+                    const generatedTitle = await generateChatTitleFromContext([
+                        ...messages,
+                        userMsg,
+                        assistantMsg,
+                    ]);
                     if (generatedTitle && generatedTitle !== chatTitle) {
                         setChatTitle(generatedTitle);
                         updateChat(chatId, { title: generatedTitle });
@@ -181,12 +224,19 @@ export default function useChatController() {
         [isLoading, scrollToEnd, persist, chatId, messages, chatTitle]
     );
 
-    // ── Load an existing chat by ID (from chat history) ────────────
+    // Load an existing chat by ID (from chat history)
     const loadChat = useCallback(async (targetChatId) => {
         try {
+            const chatsResult = await getChats(currentUserId);
+            const chat = chatsResult.ok
+                ? chatsResult.value.find((c) => c.id === targetChatId)
+                : null;
+            if (!chat) return;
+
             setMessages([]);
             resetGeminiChat();
             setChatId(targetChatId);
+            setChatTitle(chat.title || "SagipPH Chat");
 
             const messagesResult = await fetchMessages(targetChatId);
             if (messagesResult.ok && messagesResult.value.length > 0) {
@@ -198,30 +248,23 @@ export default function useChatController() {
                 }));
                 setMessages(restored);
             }
-
-            // Update title from DB
-            const chatsResult = await getChats();
-            if (chatsResult.ok) {
-                const chat = chatsResult.value.find((c) => c.id === targetChatId);
-                if (chat) setChatTitle(chat.title || "SagipPH Chat");
-            }
         } catch (err) {
             console.warn("[ChatController] loadChat error:", err);
         }
-    }, []);
+    }, [currentUserId]);
 
-    // ── Clear conversation ────────────────────────────────────────────
+    // Clear conversation
     const clearChat = useCallback(async () => {
         setMessages([]);
         resetGeminiChat();
         setChatTitle("SagipPH Chat");
 
         // Keep previous chats for history; just create and switch to a fresh one.
-        const createResult = await createChat({ title: "SagipPH Chat" });
+        const createResult = await createChat({ title: "SagipPH Chat", userId: currentUserId });
         if (createResult.ok) {
             setChatId(createResult.value.id);
         }
-    }, []);
+    }, [currentUserId]);
 
     return {
         messages,

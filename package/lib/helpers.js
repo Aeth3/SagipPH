@@ -550,36 +550,250 @@ export const generateDateTimeId = (prefix = "user") => {
     return `${prefix}_${ts}_${rand}`;
 };
 
+const FIELD_MAP = {
+    sender: "sender",
+    location: "location",
+    barangay: "location",
+    street: "street",
+    situation: "situation",
+    name: "name",
+    emergency_type: "emergencyType",
+    risk_level: "riskLevel",
+    geo_tag: "geoTag",
+    other_contanct_no: "otherContactNo",
+    other_contact_no: "otherContactNo",
+
+    pregnant: "pregnant",
+    senior: "senior",
+    two_years_old_below: "twoYearsOldBelow",
+    kids: "kids",
+    pwd: "pwd",
+    adult: "adult",
+    animals: "animals",
+    total: "total",
+};
+
+function parseNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function parseGeoTag(value) {
+    if (!value) return null;
+
+    const parts = value.split(",").map((v) => Number(v.trim()));
+    if (parts.length !== 2 || parts.some(Number.isNaN)) return null;
+
+    return { lat: parts[0], lng: parts[1] };
+}
+
+function normalizeDispatchKey(key) {
+    return key
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}
+
+const NUMERIC_FIELDS = new Set([
+    "pregnant",
+    "senior",
+    "twoYearsOldBelow",
+    "kids",
+    "pwd",
+    "adult",
+    "animals",
+    "total",
+]);
+
 export function parseDispatchFromReply(reply, chatId) {
     if (!reply?.toUpperCase().includes("CONFIRMED_DISPATCH")) {
         return null;
     }
 
-    const block = reply.split("CONFIRMED_DISPATCH:")[1];
+    const markerMatch = reply.match(/CONFIRMED_DISPATCH\s*:?\s*([\s\S]*)$/i);
+    const block = markerMatch?.[1];
     if (!block) return null;
 
-    const payload = {
-        id: `dispatch_${Date.now()}`,
-        chatId: chatId,
+    const content = {
+        sender: null,
+        location: null,
+        street: null,
+        situation: null,
+        name: null,
+        emergencyType: null,
+        riskLevel: null,
+        geoTag: null,
+        otherContactNo: null,
+
+        // numeric fields default to 0
+        pregnant: 0,
+        senior: 0,
+        twoYearsOldBelow: 0,
+        kids: 0,
+        pwd: 0,
+        adult: 0,
+        animals: 0,
+        total: 0,
     };
 
     const lines = block
-        .split("\n")
+        .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean);
 
+    let parsedFieldCount = 0;
+
     for (const line of lines) {
-        const match = line.match(/^->\s*(.+?)\|\s*(.+)$/);
+        const match = line.match(/^(?:[-*]\s*)?(?:->|=>|[>\u2192\u27a4])?\s*([^|:]+?)\s*[|:]\s*(.+)$/);
         if (!match) continue;
 
-        const label = match[1].toLowerCase().trim();
+        const rawKey = normalizeDispatchKey(match[1]);
         const value = match[2].trim();
 
-        // Normalize only fields you care about
-        if (label.includes("emergency type")) {
-            payload.type = value;
+        const mappedKey = FIELD_MAP[rawKey];
+        if (!mappedKey) continue;
+
+        // --- GEO TAG ---
+        if (mappedKey === "geoTag") {
+            content.geoTag = parseGeoTag(value);
+            parsedFieldCount += 1;
+            continue;
         }
+
+        // --- NUMERIC FIELDS ---
+        if (NUMERIC_FIELDS.has(mappedKey)) {
+            content[mappedKey] = parseNumber(value);
+            parsedFieldCount += 1;
+            continue;
+        }
+
+        // --- NORMAL FIELDS ---
+        content[mappedKey] = value;
+        parsedFieldCount += 1;
     }
 
-    return payload;
+    if (parsedFieldCount === 0) return null;
+
+    return {
+        id: `dispatch_${Date.now()}`,
+        chatId,
+        type: "dispatch",
+        content,
+    };
+}
+
+function stringifyDispatchValue(value, fallback = "N/A") {
+    if (value === null || value === undefined) return fallback;
+    const text = String(value).trim();
+    return text || fallback;
+}
+
+function stringifyDispatchNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? String(n) : "0";
+}
+
+const PLACEHOLDER_VALUE_RE =
+    /^(?:n\/a|na|none|null|unknown|not\s*provided|unspecified|wala|hindi\s*alam|di\s*alam|-|_)$/i;
+
+function normalizeDispatchText(value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+    if (PLACEHOLDER_VALUE_RE.test(text)) return null;
+    return text;
+}
+
+function normalizePhoneNumber(value) {
+    const text = normalizeDispatchText(value);
+    if (!text) return null;
+
+    const digits = text.replace(/\D/g, "");
+    if (/^09\d{9}$/.test(digits)) return digits;
+    if (/^639\d{9}$/.test(digits)) return `0${digits.slice(2)}`;
+    return null;
+}
+
+function isValidLocationValue(value) {
+    const text = normalizeDispatchText(value);
+    if (!text) return false;
+    return text.length >= 3;
+}
+
+function normalizeDispatchContent(content = {}) {
+    return {
+        sender: normalizePhoneNumber(content.sender),
+        location: normalizeDispatchText(content.location),
+        street: normalizeDispatchText(content.street),
+        situation: normalizeDispatchText(content.situation),
+        name: normalizeDispatchText(content.name),
+        emergencyType: normalizeDispatchText(content.emergencyType),
+        riskLevel: normalizeDispatchText(content.riskLevel),
+        geoTag: content.geoTag ?? null,
+        otherContactNo: normalizePhoneNumber(content.otherContactNo),
+        pregnant: parseNumber(content.pregnant),
+        senior: parseNumber(content.senior),
+        twoYearsOldBelow: parseNumber(content.twoYearsOldBelow),
+        kids: parseNumber(content.kids),
+        pwd: parseNumber(content.pwd),
+        adult: parseNumber(content.adult),
+        animals: parseNumber(content.animals),
+        total: parseNumber(content.total),
+    };
+}
+
+export function validateDispatchContent(content = {}) {
+    const normalized = normalizeDispatchContent(content);
+    const missing = [];
+
+    if (!normalized.sender) missing.push("sender");
+    if (!isValidLocationValue(normalized.location)) missing.push("location");
+    if (!isValidLocationValue(normalized.street)) missing.push("street");
+    if (!normalizeDispatchText(normalized.situation)) missing.push("situation");
+
+    return {
+        ready: missing.length === 0,
+        missing,
+        content: normalized,
+    };
+}
+
+export function buildConfirmedDispatchBlock(content = {}) {
+    const normalized = normalizeDispatchContent(content);
+    const pregnant = parseNumber(normalized.pregnant);
+    const senior = parseNumber(normalized.senior);
+    const twoYearsOldBelow = parseNumber(normalized.twoYearsOldBelow);
+    const kids = parseNumber(normalized.kids);
+    const pwd = parseNumber(normalized.pwd);
+    const adult = parseNumber(normalized.adult);
+    const animals = parseNumber(normalized.animals);
+
+    const totalFromCounts =
+        pregnant + senior + twoYearsOldBelow + kids + pwd + adult;
+    const total = Number.isFinite(Number(normalized.total))
+        ? parseNumber(normalized.total)
+        : totalFromCounts;
+
+    const lines = [
+        "CONFIRMED_DISPATCH:",
+        `-> SENDER| ${stringifyDispatchValue(normalized.sender)}`,
+        `-> BARANGAY| ${stringifyDispatchValue(normalized.location)}`,
+        `-> STREET| ${stringifyDispatchValue(normalized.street)}`,
+        `-> SITUATION| ${stringifyDispatchValue(normalized.situation)}`,
+        `-> NAME| ${stringifyDispatchValue(normalized.name)}`,
+        `-> EMERGENCY_TYPE| ${stringifyDispatchValue(normalized.emergencyType)}`,
+        `-> RISK_LEVEL| ${stringifyDispatchValue(normalized.riskLevel)}`,
+        `-> OTHER_CONTACT_NO| ${stringifyDispatchValue(normalized.otherContactNo)}`,
+        `-> PREGNANT| ${stringifyDispatchNumber(pregnant)}`,
+        `-> SENIOR| ${stringifyDispatchNumber(senior)}`,
+        `-> TWO_YEARS_OLD_BELOW| ${stringifyDispatchNumber(twoYearsOldBelow)}`,
+        `-> KIDS| ${stringifyDispatchNumber(kids)}`,
+        `-> PWD| ${stringifyDispatchNumber(pwd)}`,
+        `-> ADULT| ${stringifyDispatchNumber(adult)}`,
+        `-> ANIMALS| ${stringifyDispatchNumber(animals)}`,
+        `-> Total| ${stringifyDispatchNumber(total)}`,
+    ];
+
+    return lines.join("\n");
 }
