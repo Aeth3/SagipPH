@@ -7,9 +7,22 @@ const LeafletMap = ({
   long = 125.5406,
   zoom = 13,
   onLocationSelect,
-  type = "default", // ✅ new prop — can be "default" or "archive"
+  markers = [],
+  type = "default",
 }) => {
   const webviewRef = useRef(null);
+
+  const safeMarkers = Array.isArray(markers)
+    ? markers.filter(
+        (item) =>
+          typeof item?.lat === "number" &&
+          typeof item?.lng === "number" &&
+          !Number.isNaN(item.lat) &&
+          !Number.isNaN(item.lng)
+      )
+    : [];
+
+  const mapCenter = safeMarkers[0] || { lat, lng: long };
 
   const mapHTML = `
   <!DOCTYPE html>
@@ -17,10 +30,7 @@ const LeafletMap = ({
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <style>
         html, body, #map { height: 100%; margin: 0; padding: 0; }
         #map { border-radius: 12px; }
@@ -36,14 +46,14 @@ const LeafletMap = ({
     </head>
     <body>
       <div id="map"></div>
-
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <script>
-        const initialLat = ${lat};
-        const initialLng = ${long};
+        const initialLat = ${mapCenter.lat};
+        const initialLng = ${mapCenter.lng};
         const isArchive = ${type === "archive" ? "true" : "false"};
+        const markersData = ${JSON.stringify(safeMarkers)};
 
-        const map = L.map('map', {
+        const map = L.map("map", {
           zoomControl: true,
           dragging: !isArchive,
           doubleClickZoom: !isArchive,
@@ -53,35 +63,67 @@ const LeafletMap = ({
           tap: !isArchive,
         }).setView([initialLat, initialLng], ${zoom});
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
-          attribution: '© OpenStreetMap contributors',
+          attribution: "OpenStreetMap contributors",
         }).addTo(map);
 
-        // 🧭 Create marker at current coordinates
-        let marker = L.marker([initialLat, initialLng], { draggable: !isArchive })
-          .addTo(map)
-          .bindPopup('📍 ' + (isArchive ? 'Saved Location' : 'Current Location') + ':<br>' + 
-                     initialLat.toFixed(6) + ', ' + initialLng.toFixed(6))
-          .openPopup();
+        if (markersData.length > 0) {
+          const layers = [];
 
-        if (!isArchive) {
-          // 📍 Update on map click
-          map.on('click', function(e) {
-            const { lat, lng } = e.latlng;
-            marker.setLatLng(e.latlng);
-            marker.setPopupContent('📍 Selected Location:<br>' + lat.toFixed(6) + ', ' + lng.toFixed(6));
-            marker.openPopup();
-            window.ReactNativeWebView.postMessage(JSON.stringify({ lat, long: lng }));
+          markersData.forEach(function(item, index) {
+            const markerColor = item.color || (index === 0 ? "#2563EB" : "#16A34A");
+            const markerTitle = item.title || "Location";
+            const markerDescription = item.description ? "<br>" + item.description : "";
+
+            const layer = L.circleMarker([item.lat, item.lng], {
+              radius: 8,
+              color: markerColor,
+              fillColor: markerColor,
+              fillOpacity: 0.9,
+              weight: 2,
+            }).addTo(map);
+
+            layer.bindPopup(
+              "<strong>" + markerTitle + "</strong><br>" +
+              item.lat.toFixed(6) + ", " + item.lng.toFixed(6) +
+              markerDescription
+            );
+
+            layers.push(layer);
           });
 
-          // 📍 Update when dragging marker
-          marker.on('dragend', function(e) {
-            const { lat, lng } = e.target.getLatLng();
-            marker.setPopupContent('📍 Selected Location:<br>' + lat.toFixed(6) + ', ' + lng.toFixed(6));
-            marker.openPopup();
-            window.ReactNativeWebView.postMessage(JSON.stringify({ lat, long: lng }));
-          });
+          if (layers.length === 1) {
+            layers[0].openPopup();
+          } else if (layers.length > 1) {
+            const group = L.featureGroup(layers);
+            map.fitBounds(group.getBounds().pad(0.25));
+          }
+        } else {
+          let marker = L.marker([initialLat, initialLng], { draggable: !isArchive })
+            .addTo(map)
+            .bindPopup(
+              (isArchive ? "Saved Location" : "Current Location") + ":<br>" +
+              initialLat.toFixed(6) + ", " + initialLng.toFixed(6)
+            )
+            .openPopup();
+
+          if (!isArchive) {
+            map.on("click", function(e) {
+              const { lat, lng } = e.latlng;
+              marker.setLatLng(e.latlng);
+              marker.setPopupContent("Selected Location:<br>" + lat.toFixed(6) + ", " + lng.toFixed(6));
+              marker.openPopup();
+              window.ReactNativeWebView.postMessage(JSON.stringify({ lat, long: lng }));
+            });
+
+            marker.on("dragend", function(e) {
+              const { lat, lng } = e.target.getLatLng();
+              marker.setPopupContent("Selected Location:<br>" + lat.toFixed(6) + ", " + lng.toFixed(6));
+              marker.openPopup();
+              window.ReactNativeWebView.postMessage(JSON.stringify({ lat, long: lng }));
+            });
+          }
         }
       </script>
     </body>
@@ -99,7 +141,7 @@ const LeafletMap = ({
         domStorageEnabled
         scrollEnabled={false}
         onMessage={(event) => {
-          if (type === "archive") return; // 🚫 ignore updates in view-only mode
+          if (type === "archive") return;
           const coords = JSON.parse(event.nativeEvent.data);
           if (onLocationSelect) onLocationSelect(coords);
         }}

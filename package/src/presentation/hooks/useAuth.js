@@ -5,7 +5,7 @@ import {
   signOut,
   clearSession,
   registerUser,
-  loginUser
+  loginUser,
 } from "../../composition/authSession";
 import { useGlobal } from "../../../context/context";
 
@@ -55,7 +55,7 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       setLoading(true);
-      const result = await signOut();
+      const result = await clearSession();
       if (!result?.ok) {
         throw new Error(result?.error?.message || "Sign out failed");
       }

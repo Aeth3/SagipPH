@@ -1,4 +1,3 @@
-// ...existing code...
 import { sendDispatchMessage } from "../../../composition/dispatchMessage";
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
@@ -14,7 +13,7 @@ import {
     getMessages as fetchMessages,
     sendMessage as persistMessage,
 } from "../../../composition/chat";
-import { getCurrentUser } from "../../../composition/authSession";
+import { getSession } from "../../../composition/authSession";
 import { MESSAGE_SENDERS } from "../../../domain/entities/Message";
 import {
     buildConfirmedDispatchBlock,
@@ -22,13 +21,14 @@ import {
     validateDispatchContent,
 } from "package/lib/helpers";
 import { getCurrentLocation } from "../../../../utils/getCurrentLocation";
-
+import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
 /**
  * ChatController - manages conversation state, AI communication,
  * and SQLite persistence via the composition layer.
  */
 export default function useChatController() {
     const [dispatchStatus, setDispatchStatus] = useState(null); // null | "success" | "error"
+    const [dispatchGeotag, setDispatchGeotag] = useState(null);
     const [chatId, setChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -36,19 +36,38 @@ export default function useChatController() {
     const [chatTitle, setChatTitle] = useState("SagipPH Chat");
     const [currentUserId, setCurrentUserId] = useState(null);
     const scrollViewRef = useRef(null);
-
+    const messagesRef = useRef([]);
+    const chatTitleRef = useRef("SagipPH Chat");
+    const [showDispatchStatus, setShowDispatchStatus] = useState({});
     const scrollToEnd = useCallback(() => {
         setTimeout(() => {
             scrollViewRef.current?.scrollToEnd?.({ animated: true });
         }, 100);
     }, []);
+    const {
+        permissionStatus,
+        requestPermission,
+    } = useLiveLocation();
 
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
+    useEffect(() => {
+        chatTitleRef.current = chatTitle;
+    }, [chatTitle]);
     // Bootstrap: load or create a chat on mount
     useEffect(() => {
         const init = async () => {
             try {
-                const userResult = await getCurrentUser();
-                const userId = userResult?.ok ? userResult?.value?.id || null : null;
+                const session = await getSession();
+                const userId = session?.ok
+                    ? (
+                        session?.value?.user?.id ??
+                        session?.value?.data?.user?.id ??
+                        null
+                    )
+                    : null;
                 setCurrentUserId(userId);
                 const chatsResult = await getChats(userId);
                 let activeChat = null;
@@ -101,7 +120,17 @@ export default function useChatController() {
         async (text) => {
             const trimmed = text.trim();
             if (!trimmed || isLoading) return;
+            // 🔒 HARD LOCATION ENFORCEMENT
+            console.log("permissionStatus", permissionStatus);
 
+            if (permissionStatus !== "granted") {
+                const latest = await requestPermission();
+
+                if (latest !== "granted") {
+                    console.warn("Location not granted. Blocking chat.");
+                    return; // 🚫 BLOCK CHAT HERE
+                }
+            }
             // Optimistic user message
             const userMsg = {
                 id: `local_${Date.now()}`,
@@ -118,8 +147,9 @@ export default function useChatController() {
             persist(MESSAGE_SENDERS.USER, trimmed);
 
             try {
+                const currentMessages = messagesRef.current;
                 const reply = await sendGeminiMessage(trimmed);
-                const extractionContext = [...messages, userMsg, { role: "assistant", text: reply }];
+                const extractionContext = [...currentMessages, userMsg, { role: "assistant", text: reply }];
                 const extracted = await extractDispatchState(extractionContext);
                 const extractedValidation = validateDispatchContent(extracted?.content);
                 const canDispatchFromExtraction = extracted?.ready && extractedValidation.ready;
@@ -162,13 +192,28 @@ export default function useChatController() {
 
                 if (payload) {
                     try {
-                        const gps = await getCurrentLocation();
+                        let gps = null;
+
+                        try {
+                            gps = await getCurrentLocation();
+                        } catch (e) {
+                            console.warn("GPS unavailable. Blocking dispatch.");
+                            setDispatchStatus("error");
+                            return; // 🚫 BLOCK if location service OFF
+                        }
+
+                        if (!gps?.latitude) {
+                            console.warn("Invalid GPS data. Blocking dispatch.");
+                            setDispatchStatus("error");
+                            return;
+                        }
 
                         payload.geotag = {
                             lat: gps.latitude,
                             lng: gps.longitude,
                             accuracy: gps.accuracy,
                         };
+                        setDispatchGeotag(payload.geotag);
                         payload.rawData = finalReply;
                         payload.type = "CHAT"
                         console.log("payload", payload);
@@ -176,23 +221,28 @@ export default function useChatController() {
                     } catch (e) {
                         console.warn("GPS unavailable:", e.message);
                     }
-
+                    // setShowDispatchStatus({ ...showDispatchStatus, show: true, details: payload });
                     const result = await sendDispatchMessage(payload);
+                    console.log("result", result);
 
+                    if (result.ok) {
+                        setShowDispatchStatus({ ...showDispatchStatus, show: true, details: payload });
+                    }
                     if (result.ok) setDispatchStatus("success");
                     else setDispatchStatus("error");
                 } else {
                     setDispatchStatus(null);
+                    setDispatchGeotag(null);
                 }
 
                 // Refresh title based on recent chat context.
                 if (chatId) {
                     const generatedTitle = await generateChatTitleFromContext([
-                        ...messages,
+                        ...currentMessages,
                         userMsg,
                         assistantMsg,
                     ]);
-                    if (generatedTitle && generatedTitle !== chatTitle) {
+                    if (generatedTitle && generatedTitle !== chatTitleRef.current) {
                         setChatTitle(generatedTitle);
                         updateChat(chatId, { title: generatedTitle });
                     }
@@ -221,7 +271,7 @@ export default function useChatController() {
                 scrollToEnd();
             }
         },
-        [isLoading, scrollToEnd, persist, chatId, messages, chatTitle]
+        [chatId, isLoading, permissionStatus, persist, requestPermission, scrollToEnd]
     );
 
     // Load an existing chat by ID (from chat history)
@@ -258,6 +308,8 @@ export default function useChatController() {
         setMessages([]);
         resetGeminiChat();
         setChatTitle("SagipPH Chat");
+        setShowDispatchStatus({ ...showDispatchStatus, show: false, details: payload });
+        setDispatchGeotag(null);
 
         // Keep previous chats for history; just create and switch to a fresh one.
         const createResult = await createChat({ title: "SagipPH Chat", userId: currentUserId });
@@ -276,5 +328,7 @@ export default function useChatController() {
         loadChat,
         scrollViewRef,
         dispatchStatus,
+        showDispatchStatus,
+        dispatchGeotag,
     };
 }

@@ -8,7 +8,7 @@ export const CHATS_TABLE = "chats";
 export const CHATS_TABLE_COLUMNS = `
   local_id TEXT PRIMARY KEY,
   server_id TEXT,
-  user_id TEXT,
+  user_id INTEGER,
   title TEXT NOT NULL,
   created_at TEXT NOT NULL
 `;

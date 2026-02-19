@@ -13,7 +13,7 @@ import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
 import { useOfflineStatus } from "../../src/presentation/hooks/useOfflineStatus";
 import { COLORS } from "package/src/legacyApp";
 import { getChats, clearChats } from "../../src/composition/chat"
-import { getCurrentUser } from "../../src/composition/authSession";
+import { getCurrentUser, getSession } from "../../src/composition/authSession";
 import { getCurrentLocation } from "../../utils/getCurrentLocation"
 
 const MAX_VISIBLE_HISTORY = 5;
@@ -33,8 +33,14 @@ export default function CustomDrawer({ navigation, logout }) {
 
     useEffect(() => {
         (async () => {
-            const userResult = await getCurrentUser();
-            const userId = userResult?.ok ? userResult?.value?.id || null : null;
+            const userResult = await getSession();
+            const userId = userResult?.ok
+                ? (
+                    userResult?.value?.user?.id ??
+                    userResult?.value?.data?.user?.id ??
+                    null
+                )
+                : null;
             setCurrentUserId(userId);
         })();
     }, []);
@@ -89,7 +95,7 @@ export default function CustomDrawer({ navigation, logout }) {
                             await loadChatHistory();
                             navigation.navigate("ChatStack", {
                                 screen: "Chat",
-                                params: { newChat: Date.now() },
+                                params: { newChat: Date.now(), loadChatId: undefined },
                             });
                         } catch (err) {
                             console.warn("[CustomDrawer] Failed to clear chats:", err);
@@ -254,7 +260,7 @@ export default function CustomDrawer({ navigation, logout }) {
                                                     // ✅ Otherwise create a brand new chat
                                                     navigation.navigate(route.name, {
                                                         screen: "Chat",
-                                                        params: { newChat: Date.now() },
+                                                        params: { newChat: Date.now(), loadChatId: undefined },
                                                     });
 
                                                 } catch (err) {

@@ -4,6 +4,18 @@ import { Message } from "../../domain/entities/Message";
 import * as chatDS from "../datasources/ChatLocalDataSource";
 import * as messageDS from "../datasources/MessageLocalDataSource";
 
+const normalizeUserId = (value) => {
+    if (value === undefined || value === null) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        if (/^\d+$/.test(trimmed)) return Number(trimmed);
+        return trimmed;
+    }
+    return null;
+};
+
 /**
  * Local-only ChatRepository implementation.
  *
@@ -46,14 +58,14 @@ export class ChatRepositoryImpl extends ChatRepository {
     }
 
     async clearChats(userId) {
-        const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
+        const normalizedUserId = normalizeUserId(userId);
 
         if (userId === undefined) {
             await messageDS.deleteAllMessages();
             const deletedCount = await chatDS.deleteAllChats();
             return { success: true, deletedCount };
         }
-        if (!normalizedUserId) return { success: true, deletedCount: 0 };
+        if (normalizedUserId == null) return { success: true, deletedCount: 0 };
 
         const scopedChats = await chatDS.getAllChats(normalizedUserId);
         for (const chat of scopedChats) {

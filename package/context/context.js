@@ -45,6 +45,7 @@ export const ContextProvider = ({ children }) => {
       // dropTable('tbl_loans');
       // dropTable('tbl_chats');
       // dropTable('tbl_messages');
+
       // CREATE TABLE
       await createTable(
         'tbl_loans',
@@ -69,6 +70,7 @@ export const ContextProvider = ({ children }) => {
         `
         local_id INTEGER PRIMARY KEY AUTOINCREMENT,
         server_id TEXT,
+        user_id INTEGER NOT NULL,
         title TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
         `

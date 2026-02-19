@@ -17,6 +17,18 @@ const now = () => new Date().toISOString();
 
 let tableReady = false;
 
+const normalizeUserId = (value) => {
+    if (value === undefined || value === null) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        if (/^\d+$/.test(trimmed)) return Number(trimmed);
+        return trimmed;
+    }
+    return null;
+};
+
 const ensureChatsTable = async () => {
     if (tableReady) return;
     await ensureTable(CHATS_TABLE, CHATS_TABLE_COLUMNS);
@@ -24,44 +36,44 @@ const ensureChatsTable = async () => {
     const { rows: columns } = await executeSql(`PRAGMA table_info(${CHATS_TABLE})`);
     const hasUserId = columns.some((col) => col?.name === "user_id");
     if (!hasUserId) {
-        await executeSql(`ALTER TABLE ${CHATS_TABLE} ADD COLUMN user_id TEXT`);
+        await executeSql(`ALTER TABLE ${CHATS_TABLE} ADD COLUMN user_id INTEGER`);
     }
     tableReady = true;
 };
 
 export const getAllChats = async (userId) => {
     await ensureChatsTable();
-    if (userId !== undefined && !(typeof userId === "string" && userId.trim())) {
+    const normalizedUserId = normalizeUserId(userId);
+    if (userId != null && normalizedUserId == null) {
         console.log(`${TAG} getAllChats(userId=missing) -> 0 rows`);
         return [];
     }
-    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
-    const hasUserScope = normalizedUserId.length > 0;
+    const hasUserScope = normalizedUserId != null;
     const { rows } = await executeSql(
         hasUserScope
             ? `SELECT * FROM ${CHATS_TABLE} WHERE user_id = ? ORDER BY created_at DESC`
             : `SELECT * FROM ${CHATS_TABLE} ORDER BY created_at DESC`,
         hasUserScope ? [normalizedUserId] : []
     );
-    console.log(`${TAG} getAllChats(userId=${normalizedUserId || "all"}) -> ${rows.length} rows`, rows);
+    console.log(`${TAG} getAllChats(userId=${normalizedUserId ?? "all"}) -> ${rows.length} rows`, rows);
     return rows;
 };
 
 export const getChatByLocalId = async (localId, userId) => {
     await ensureChatsTable();
-    if (userId !== undefined && !(typeof userId === "string" && userId.trim())) {
+    const normalizedUserId = normalizeUserId(userId);
+    if (userId != null && normalizedUserId == null) {
         console.log(`${TAG} getChatByLocalId(${localId}, userId=missing) -> null`);
         return null;
     }
-    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
-    const hasUserScope = normalizedUserId.length > 0;
+    const hasUserScope = normalizedUserId != null;
     const { rows } = await executeSql(
         hasUserScope
             ? `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ? AND user_id = ?`
             : `SELECT * FROM ${CHATS_TABLE} WHERE local_id = ?`,
         hasUserScope ? [localId, normalizedUserId] : [localId]
     );
-    console.log(`${TAG} getChatByLocalId(${localId}, userId=${normalizedUserId || "all"}) ->`, rows[0] ?? null);
+    console.log(`${TAG} getChatByLocalId(${localId}, userId=${normalizedUserId ?? "all"}) ->`, rows[0] ?? null);
     return rows[0] ?? null;
 };
 
@@ -71,20 +83,21 @@ export const getChatByLocalId = async (localId, userId) => {
  * @returns {object} the full row as stored (snake_case keys)
  */
 export const insertChat = async (data) => {
+    console.log("data", data);
+
     await ensureChatsTable();
     const localId = uuid();
     const createdAt = now();
-    const userId =
-        typeof data?.user_id === "string" && data.user_id.trim()
-            ? data.user_id.trim()
-            : (typeof data?.userId === "string" ? data.userId.trim() : "");
+    const userId = normalizeUserId(
+        data?.user_id !== undefined ? data.user_id : data?.userId
+    );
 
-    console.log(`${TAG} insertChat -> local_id=${localId}, user_id=${userId || "none"}, title="${data.title}"`);
+    console.log(`${TAG} insertChat -> local_id=${localId}, user_id=${userId ?? "none"}, title="${data.title}"`);
     await executeSql(
         `INSERT INTO ${CHATS_TABLE}
        (local_id, user_id, title, created_at)
      VALUES (?, ?, ?, ?)`,
-        [localId, userId || null, data.title, createdAt]
+        [localId, userId ?? null, data.title, createdAt]
     );
 
     return getChatByLocalId(localId);
@@ -155,8 +168,8 @@ export const deleteAllChats = async () => {
 
 export const deleteAllChatsByUserId = async (userId) => {
     await ensureChatsTable();
-    const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
-    if (!normalizedUserId) return 0;
+    const normalizedUserId = normalizeUserId(userId);
+    if (normalizedUserId == null) return 0;
     console.log(`${TAG} deleteAllChatsByUserId(${normalizedUserId})`);
     const { rowsAffected } = await executeSql(
         `DELETE FROM ${CHATS_TABLE} WHERE user_id = ?`,

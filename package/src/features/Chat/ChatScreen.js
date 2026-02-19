@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     Text,
     View,
@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
+    Modal,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
 import ChatHeader from "../../../components/ui/ChatHeader";
@@ -28,8 +29,11 @@ import { useAlertModal } from "package/src/presentation/hooks/useAlertModal";
 import SendSMS from "react-native-sms";
 import { useNavigation } from "@react-navigation/native";
 import SearchableDropdown from "../../../components/ui/SearchableDropdown";
+import LeafletMap from "../../../components/ui/LeafletMap";
 import chatConfig from "./config.json";
 import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
+import DeviceInfo from "react-native-device-info";
+import { findNearestEvacCenter } from "../../../utils/nearestEvac";
 
 const SUGGESTION_CHIPS = chatConfig.SUGGESTION_CHIPS;
 const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
@@ -40,6 +44,29 @@ const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
 }));
 const PEOPLE_GROUPS = chatConfig.PEOPLE_GROUPS;
 const BARANGAY_OPTIONS = chatConfig.BARANGAY_OPTIONS;
+const SAMPLE_EVAC_CENTERS = [
+    {
+        id: "evac-1",
+        name: "Butuan City Sports Complex",
+        lat: 8.951802,
+        lng: 125.538029,
+        address: "J.C. Aquino Avenue, Butuan City",
+    },
+    {
+        id: "evac-2",
+        name: "Ampayon Covered Court",
+        lat: 8.973663,
+        lng: 125.56607,
+        address: "Brgy. Ampayon, Butuan City",
+    },
+    {
+        id: "evac-3",
+        name: "Bancasi Gymnasium",
+        lat: 8.961929,
+        lng: 125.487015,
+        address: "Brgy. Bancasi, Butuan City",
+    },
+];
 
 const normalizeContactInput = (value) => {
     let digits = (value ?? "").replace(/\D/g, "");
@@ -52,6 +79,7 @@ const isValidPhMobileLocal = (localNumber) => /^9\d{9}$/.test(localNumber);
 
 function AnimatedButton({
     style,
+    touchableStyle,
     onPress,
     disabled,
     children,
@@ -78,6 +106,7 @@ function AnimatedButton({
 
     return (
         <TouchableOpacity
+            style={touchableStyle}
             onPress={onPress}
             disabled={disabled}
             activeOpacity={activeOpacity}
@@ -104,6 +133,7 @@ function AnimatedButton({
 function SuggestionChip({ icon, label, onPress, disabled }) {
     return (
         <AnimatedButton
+            touchableStyle={styles.chipTouchable}
             style={[styles.chip, disabled && styles.chipDisabled]}
             onPress={onPress}
             disabled={disabled}
@@ -234,18 +264,27 @@ function TypingIndicator() {
     );
 }
 
-function ChatInput({ value, onChangeText, onSend, disabled, isOnline }) {
+function ChatInput({
+    value,
+    onChangeText,
+    onSend,
+    disabled,
+    isOnline,
+    onInputPress,
+    isDeviceLocationEnabled,
+    permissionStatus
+}) {
     if (!isOnline) {
         // When offline, show a full-width send button (disabled)
         return (
             <View style={styles.inputWrapper}>
                 <AnimatedButton
-                    style={[styles.sendButton, { width: '100%', borderRadius: 28, justifyContent: 'center', alignItems: 'center', height: 50 }]}
+                    style={[styles.sendButton, styles.offlineSendButton]}
                     onPress={onSend}
                     disabled={false}
                     scaleTo={0.98}
                 >
-                    <Text style={{ color: COLORS.white, fontSize: 16, fontFamily: 'NunitoSans-Bold' }}>
+                    <Text style={styles.offlineSendButtonText}>
                         Send Rescue Request via SMS
                     </Text>
                 </AnimatedButton>
@@ -260,10 +299,21 @@ function ChatInput({ value, onChangeText, onSend, disabled, isOnline }) {
                 </AnimatedButton>
                 <TextInput
                     style={styles.textInput}
-                    placeholder={disabled ? "Chat unavailable while offline" : "Ask SagipPH"}
+                    placeholder={
+                        !isOnline
+                            ? "Offline mode"
+                            : !isDeviceLocationEnabled
+                                ? "Turn on device location to chat"
+                                : permissionStatus !== "granted"
+                                    ? "Enable location permission"
+                                    : disabled
+                                        ? "Please wait for SagipPH AI to respond..."
+                                        : "Ask SagipPH"
+                    }
                     placeholderTextColor={COLORS.placeholderColor}
                     value={value}
                     onChangeText={onChangeText}
+                    onFocus={onInputPress}
                     multiline={false}
                     returnKeyType="send"
                     onSubmitEditing={onSend}
@@ -482,10 +532,10 @@ function OfflineRescueFields({
             })}
 
             <Animated.View
-                style={{
-                    transform: [{ translateY: belowFieldsTranslateY }],
-                    gap: 12,
-                }}
+                style={[
+                    styles.offlineAnimatedSection,
+                    { transform: [{ translateY: belowFieldsTranslateY }] },
+                ]}
             >
                 <Text style={styles.sectionLabel}>Select Current Risk Level</Text>
                 <View style={styles.riskRow}>
@@ -534,6 +584,7 @@ function OfflineRescueFields({
 export default function ChatScreen({ route }) {
     const navigation = useNavigation();
     const [message, setMessage] = useState("");
+    const [isDispatchModalVisible, setIsDispatchModalVisible] = useState(false);
     const [barangay, setBarangay] = useState("");
     const [barangayTouched, setBarangayTouched] = useState(false);
     const [additionalContacts, setAdditionalContacts] = useState([]);
@@ -546,23 +597,103 @@ export default function ChatScreen({ route }) {
         adults: 0,
     });
     const { showAlert, alertModal } = useAlertModal();
-    const { messages, isLoading, send, clearChat, loadChat, scrollViewRef } = useChatController();
+    const {
+        messages,
+        isLoading,
+        send,
+        clearChat,
+        loadChat,
+        scrollViewRef,
+        showDispatchStatus,
+        dispatchGeotag,
+    } = useChatController();
     const { isOnline } = useOfflineStatus();
     const hasAutoClearedOfflineRef = useRef(false);
-    const { coords, error } = useLiveLocation();
+    const [isDeviceLocationEnabled, setIsDeviceLocationEnabled] = useState(true);
+    const newChat = !!route?.params?.newChat;
+    const loadChatId = route?.params?.loadChatId;
+    const paddingTop = route?.params?.paddingTop;
+    const {
+        permissionStatus,
+        requestPermission: requestLocationPermission,
+        openSettings: openLocationSettings,
+    } = useLiveLocation();
 
-    useEffect(()=>{
-        console.log("coords",coords);
-        
-    },[coords, error])
-    useEffect(() => {
-        if (route?.params?.newChat) {
-            clearChat();
+    const isLocationServiceEnabled = useCallback(async () => {
+        try {
+            const enabled = await DeviceInfo.isLocationEnabled();
+            return enabled;
+        } catch (e) {
+            console.warn("Failed to check location service:", e);
+            return false;
         }
-    }, [clearChat, route?.params?.newChat]);
+    }, []);
+
+    const requireLocationOrAlert = useCallback(async () => {
+        // 1️⃣ Check device GPS switch
+        const locationEnabled = await isLocationServiceEnabled();
+
+        if (!locationEnabled) {
+            showAlert(
+                "Location Services Off",
+                "Please turn ON your device location services to start chatting.",
+                [{ text: "OK" }],
+                { type: "warning" }
+            );
+            return false;
+        }
+
+        // 2️⃣ Then check permission
+        if (permissionStatus === "granted") return true;
+
+        const latest = await requestLocationPermission();
+        if (latest !== "granted") {
+            showAlert(
+                "Location Permission Required",
+                "Please allow location access or enable it in app settings.",
+                [
+                    { text: "OK" },
+                    { text: "Open settings", onPress: () => openLocationSettings() },
+                ],
+                { type: "warning" }
+            );
+            return false;
+        }
+
+        return true;
+    }, [isLocationServiceEnabled, openLocationSettings, permissionStatus, requestLocationPermission, showAlert]);
+
+
+    const handleChatInputPress = async () => {
+        if (!isOnline) return;
+
+        await requireLocationOrAlert();
+    };
 
     useEffect(() => {
-        if (route?.params?.loadChatId) {
+        const syncLocationEnabled = async () => {
+            const enabled = await isLocationServiceEnabled();
+            setIsDeviceLocationEnabled(enabled);
+        };
+
+        syncLocationEnabled();
+        const interval = setInterval(syncLocationEnabled, 5000);
+
+        return () => clearInterval(interval);
+    }, [isLocationServiceEnabled]);
+
+    useEffect(() => {
+        if (newChat) {
+            clearChat();
+            navigation.setParams({ loadChatId: undefined });
+        }
+    }, [clearChat, navigation, newChat]);
+
+    useEffect(() => {
+        if (newChat) {
+            return;
+        }
+        if (loadChatId) {
             if (!isOnline) {
                 // If offline and trying to load a chat from history, reset to new chat and show alert
                 clearChat();
@@ -574,10 +705,10 @@ export default function ChatScreen({ route }) {
                     { type: "info" }
                 );
             } else {
-                loadChat(route.params.loadChatId);
+                loadChat(loadChatId);
             }
         }
-    }, [loadChat, route?.params?.loadChatId, route?.params, isOnline, clearChat, navigation, showAlert]);
+    }, [clearChat, isOnline, loadChat, loadChatId, navigation, newChat, showAlert]);
 
     useEffect(() => {
         if (isOnline) {
@@ -598,7 +729,13 @@ export default function ChatScreen({ route }) {
     }, [clearChat, isOnline, messages.length, showAlert]);
 
     const hasMessages = messages.length > 0;
-    const interactionsDisabled = isLoading || !isOnline;
+
+    const interactionsDisabled =
+        isLoading ||
+        !isOnline ||
+        permissionStatus !== "granted" ||
+        !isDeviceLocationEnabled;
+
     const barangayError = barangayTouched && !barangay.trim() ? "Barangay is required." : null;
 
     const showOfflineAlert = () => {
@@ -610,19 +747,27 @@ export default function ChatScreen({ route }) {
         );
     };
 
-    const handleChipPress = (label) => {
+    const handleChipPress = async (label) => {
         if (!isOnline) {
             showOfflineAlert();
             return;
         }
+
+        const allowed = await requireLocationOrAlert();
+        if (!allowed) return;
+
         send(label);
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!isOnline) {
             handleOfflineSend();
             return;
         }
+
+        const allowed = await requireLocationOrAlert();
+        if (!allowed) return;
+
         if (message.trim() && !isLoading) {
             send(message);
             setMessage("");
@@ -762,18 +907,78 @@ export default function ChatScreen({ route }) {
         return null;
     };
 
+    const openDispatchStatusModal = () => {
+        setIsDispatchModalVisible(true);
+    };
+
+    const closeDispatchStatusModal = () => {
+        setIsDispatchModalVisible(false);
+    };
+
+    const dispatchLocation = showDispatchStatus.details?.geotag ?? dispatchGeotag;
+    const dispatchLat = dispatchLocation?.lat ?? 8.9486;
+    const dispatchLng = dispatchLocation?.lng ?? 125.5406;
+    const hasValidDispatchLocation = Number.isFinite(dispatchLat) && Number.isFinite(dispatchLng);
+
+    const nearestEvacCenter = useMemo(() => {
+        if (!hasValidDispatchLocation) return null;
+        return findNearestEvacCenter(
+            { lat: dispatchLat, lng: dispatchLng },
+            SAMPLE_EVAC_CENTERS
+        );
+    }, [dispatchLat, dispatchLng, hasValidDispatchLocation]);
+
+    const dispatchMapMarkers = useMemo(() => {
+        if (!hasValidDispatchLocation) return [];
+        const markers = [
+            {
+                lat: dispatchLat,
+                lng: dispatchLng,
+                title: "Your Current Location",
+                description: "Dispatch geotag",
+                color: "#2563EB",
+            },
+        ];
+
+        if (nearestEvacCenter) {
+            markers.push({
+                lat: nearestEvacCenter.lat,
+                lng: nearestEvacCenter.lng,
+                title: nearestEvacCenter.name,
+                description: `${nearestEvacCenter.distance.toFixed(2)} km away`,
+                color: "#16A34A",
+            });
+        }
+
+        return markers;
+    }, [dispatchLat, dispatchLng, hasValidDispatchLocation, nearestEvacCenter]);
+
     return (
-        <Screen style={{ paddingVertical: route?.params?.paddingTop }}>
+        <Screen style={{ paddingVertical: paddingTop }}>
             <KeyboardAvoidingView
                 style={styles.container}
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
                 <ChatHeader />
+                {showDispatchStatus.show && (
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={openDispatchStatusModal}
+                        style={styles.dispatchStatusBarButton}
+                    >
+                        <View style={styles.dispatchStatusBar}>
+                            <Text style={styles.dispatchStatusText}>
+                                Rescue request dispatched successfully.
+                            </Text>
+                            <Text style={styles.dispatchStatusHint}>Tap to view details</Text>
+                        </View>
+                    </TouchableOpacity>
+                )}
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollArea}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingTop: showDispatchStatus.show ? 20 : 40 }]}
                     keyboardShouldPersistTaps="handled"
                 >
                     {!hasMessages && (
@@ -831,8 +1036,62 @@ export default function ChatScreen({ route }) {
                     onSend={handleSend}
                     disabled={interactionsDisabled}
                     isOnline={isOnline}
+                    onInputPress={handleChatInputPress}
+                    isDeviceLocationEnabled={isDeviceLocationEnabled}
+                    permissionStatus={permissionStatus}
                 />
             </KeyboardAvoidingView>
+            <Modal
+                visible={isDispatchModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={closeDispatchStatusModal}
+            >
+                <View style={styles.dispatchModalBackdrop}>
+                    <View style={styles.dispatchModalCard}>
+                        <View style={styles.dispatchModalHeaderRow}>
+                            <View style={styles.dispatchModalBadge}>
+                                <Text style={styles.dispatchModalBadgeText}>DISPATCHED</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.dispatchModalIconCloseButton}
+                                onPress={closeDispatchStatusModal}
+                                activeOpacity={0.85}
+                            >
+                                <Text style={styles.dispatchModalIconCloseText}>x</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.dispatchModalTitle}>Rescue Request Sent</Text>
+                        <Text style={styles.dispatchModalBody}>
+                            Your rescue request was sent successfully and queued for responder processing.
+                        </Text>
+                        <View style={styles.dispatchModalMapContainer}>
+                            <LeafletMap
+                                lat={dispatchLat}
+                                long={dispatchLng}
+                                zoom={16}
+                                markers={dispatchMapMarkers}
+                                type="archive"
+                            />
+                        </View>
+                        <Text style={styles.dispatchModalCoords}>
+                            {`Current: ${hasValidDispatchLocation ? `${dispatchLat.toFixed(6)}, ${dispatchLng.toFixed(6)}` : "N/A"}`}
+                        </Text>
+                        <Text style={styles.dispatchModalNearest}>
+                            {nearestEvacCenter
+                                ? `Nearest evac center: ${nearestEvacCenter.name} (${nearestEvacCenter.distance.toFixed(2)} km)`
+                                : "Nearest evac center: N/A"}
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.dispatchModalCloseButton}
+                            onPress={closeDispatchStatusModal}
+                            activeOpacity={0.9}
+                        >
+                            <Text style={styles.dispatchModalCloseButtonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
             {alertModal}
         </Screen>
     );
@@ -852,6 +1111,134 @@ const styles = StyleSheet.create({
     },
     scrollArea: {
         flex: 1,
+    },
+    dispatchStatusBarButton: {
+        marginHorizontal: 16,
+        marginTop: 8,
+    },
+    dispatchStatusBar: {
+        backgroundColor: "#EAF7F2",
+        borderColor: COLORS.primary2,
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    dispatchStatusText: {
+        color: COLORS.primary2,
+        fontFamily: "NunitoSans-Bold",
+        fontSize: 13,
+        textAlign: "center",
+    },
+    dispatchStatusHint: {
+        marginTop: 2,
+        color: COLORS.primary2,
+        fontFamily: "NunitoSans-Regular",
+        fontSize: 11,
+        textAlign: "center",
+        opacity: 0.8,
+    },
+    dispatchModalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(8, 16, 24, 0.55)",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+    },
+    dispatchModalCard: {
+        width: "100%",
+        maxWidth: 460,
+        borderRadius: 18,
+        backgroundColor: COLORS.white,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        shadowColor: "#0B1220",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    dispatchModalHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 10,
+    },
+    dispatchModalBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: "#EAF7F2",
+        borderWidth: 1,
+        borderColor: "#B7E7D2",
+    },
+    dispatchModalBadgeText: {
+        fontSize: 11,
+        color: COLORS.primary2,
+        fontFamily: "NunitoSans-Bold",
+        letterSpacing: 0.6,
+    },
+    dispatchModalIconCloseButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: "#F3F4F6",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    dispatchModalIconCloseText: {
+        color: COLORS.title,
+        fontSize: 14,
+        fontFamily: "NunitoSans-Bold",
+    },
+    dispatchModalTitle: {
+        fontSize: 20,
+        color: COLORS.title,
+        fontFamily: "Poppins-SemiBold",
+        marginBottom: 6,
+    },
+    dispatchModalBody: {
+        fontSize: 14,
+        lineHeight: 20,
+        color: COLORS.text,
+        fontFamily: "NunitoSans-Regular",
+    },
+    dispatchModalMapContainer: {
+        marginTop: 14,
+        height: 300,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: "#E5E7EB",
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+    },
+    dispatchModalCoords: {
+        marginTop: 10,
+        fontSize: 12,
+        color: "#4B5563",
+        fontFamily: "NunitoSans-SemiBold",
+    },
+    dispatchModalNearest: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#166534",
+        fontFamily: "NunitoSans-Bold",
+    },
+    dispatchModalCloseButton: {
+        marginTop: 14,
+        width: "100%",
+        backgroundColor: COLORS.primary2,
+        borderRadius: 12,
+        paddingVertical: 11,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    dispatchModalCloseButtonText: {
+        fontSize: 14,
+        color: COLORS.white,
+        fontFamily: "NunitoSans-Bold",
     },
     scrollContent: {
         paddingHorizontal: 24,
@@ -876,8 +1263,11 @@ const styles = StyleSheet.create({
     },
 
     chipsContainer: {
-        flexDirection: "column",
+
         gap: 12,
+    },
+    chipTouchable: {
+        alignSelf: "flex-start",
     },
     chip: {
         flexDirection: "row",
@@ -1198,6 +1588,21 @@ const styles = StyleSheet.create({
     },
     inputContainerDisabled: {
         opacity: 0.7,
+    },
+    offlineSendButton: {
+        width: "100%",
+        borderRadius: 28,
+        justifyContent: "center",
+        alignItems: "center",
+        height: 50,
+    },
+    offlineSendButtonText: {
+        color: COLORS.white,
+        fontSize: 16,
+        fontFamily: "NunitoSans-Bold",
+    },
+    offlineAnimatedSection: {
+        gap: 12,
     },
     textInput: {
         flex: 1,
