@@ -1,26 +1,26 @@
-import { sendDispatchMessage } from "../../../composition/dispatchMessage";
+import { sendDispatchMessage } from "../../../composition/dispatch/dispatchMessage";
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-    sendMessage as sendGeminiMessage,
-    resetChat as resetGeminiChat,
+    sendChatPrompt,
+    resetChatConversation,
     generateChatTitleFromContext,
     extractDispatchState,
-} from "../../../services/geminiService";
+} from "../../../composition/chat/chatAssistant";
 import {
     getChats,
     createChat,
     updateChat,
     getMessages as fetchMessages,
     sendMessage as persistMessage,
-} from "../../../composition/chat";
-import { getSession } from "../../../composition/authSession";
+} from "../../../composition/chat/chat";
+import { getSession } from "../../../composition/auth/authSession";
 import { MESSAGE_SENDERS } from "../../../domain/entities/Message";
 import {
     buildConfirmedDispatchBlock,
     parseDispatchFromReply,
     validateDispatchContent,
 } from "package/lib/helpers";
-import { getCurrentLocation } from "../../../../utils/getCurrentLocation";
+import { getCurrentLocation } from "../../../composition/system/location";
 import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
 /**
  * ChatController - manages conversation state, AI communication,
@@ -38,7 +38,7 @@ export default function useChatController() {
     const scrollViewRef = useRef(null);
     const messagesRef = useRef([]);
     const chatTitleRef = useRef("SagipPH Chat");
-    const [showDispatchStatus, setShowDispatchStatus] = useState({});
+    const [showDispatchStatus, setShowDispatchStatus] = useState({ show: false, details: null });
     const scrollToEnd = useCallback(() => {
         setTimeout(() => {
             scrollViewRef.current?.scrollToEnd?.({ animated: true });
@@ -148,7 +148,7 @@ export default function useChatController() {
 
             try {
                 const currentMessages = messagesRef.current;
-                const reply = await sendGeminiMessage(trimmed);
+                const reply = await sendChatPrompt(trimmed);
                 const extractionContext = [...currentMessages, userMsg, { role: "assistant", text: reply }];
                 const extracted = await extractDispatchState(extractionContext);
                 const extractedValidation = validateDispatchContent(extracted?.content);
@@ -226,7 +226,7 @@ export default function useChatController() {
                     console.log("result", result);
 
                     if (result.ok) {
-                        setShowDispatchStatus({ ...showDispatchStatus, show: true, details: payload });
+                        setShowDispatchStatus((prev) => ({ ...prev, show: true, details: payload }));
                     }
                     if (result.ok) setDispatchStatus("success");
                     else setDispatchStatus("error");
@@ -265,7 +265,7 @@ export default function useChatController() {
                 };
 
                 setMessages((prev) => [...prev, errorMsg]);
-                console.warn("[ChatController] Gemini error:", error);
+                console.warn("[ChatController] Chat service error:", error);
             } finally {
                 setIsLoading(false);
                 scrollToEnd();
@@ -284,7 +284,7 @@ export default function useChatController() {
             if (!chat) return;
 
             setMessages([]);
-            resetGeminiChat();
+            resetChatConversation();
             setChatId(targetChatId);
             setChatTitle(chat.title || "SagipPH Chat");
 
@@ -306,9 +306,9 @@ export default function useChatController() {
     // Clear conversation
     const clearChat = useCallback(async () => {
         setMessages([]);
-        resetGeminiChat();
+        resetChatConversation();
         setChatTitle("SagipPH Chat");
-        setShowDispatchStatus({ ...showDispatchStatus, show: false, details: payload });
+        setShowDispatchStatus((prev) => ({ ...prev, show: false, details: null }));
         setDispatchGeotag(null);
 
         // Keep previous chats for history; just create and switch to a fresh one.

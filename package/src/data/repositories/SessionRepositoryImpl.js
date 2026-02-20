@@ -62,4 +62,3 @@ export class SessionRepositoryImpl extends SessionRepository {
   }
 }
 
-export const sessionRepository = new SessionRepositoryImpl();

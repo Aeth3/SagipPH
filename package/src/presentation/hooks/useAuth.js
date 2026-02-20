@@ -6,7 +6,7 @@ import {
   clearSession,
   registerUser,
   loginUser,
-} from "../../composition/authSession";
+} from "../../composition/auth/authSession";
 import { useGlobal } from "../../../context/context";
 
 const sanitizeError = (message, fallback = "Something went wrong") => {

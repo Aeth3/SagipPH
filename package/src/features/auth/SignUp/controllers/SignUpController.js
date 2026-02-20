@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { signUp } from "../../../../composition/authSession";
+import { signUp } from "../../../../composition/auth/authSession";
 import { useNavigation } from "@react-navigation/native";
 import { useGlobal } from "../../../../../context/context";
 

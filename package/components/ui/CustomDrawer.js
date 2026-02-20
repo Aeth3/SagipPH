@@ -12,8 +12,8 @@ import ProfileHeader from "./ProfileHeader";
 import { useAlertModal } from "../../src/presentation/hooks/useAlertModal";
 import { useOfflineStatus } from "../../src/presentation/hooks/useOfflineStatus";
 import { COLORS } from "package/src/legacyApp";
-import { getChats, clearChats } from "../../src/composition/chat"
-import { getCurrentUser, getSession } from "../../src/composition/authSession";
+import { getChats, clearChats } from "../../src/composition/chat/chat"
+import { getCurrentUser, getSession } from "../../src/composition/auth/authSession";
 import { getCurrentLocation } from "../../utils/getCurrentLocation"
 
 const MAX_VISIBLE_HISTORY = 5;
@@ -244,7 +244,7 @@ export default function CustomDrawer({ navigation, logout }) {
                                                     if (chatsResult.ok && chatsResult.value.length > 0) {
                                                         const currentChat = chatsResult.value[0];
 
-                                                        const { getMessages } = await import("../../src/composition/chat");
+                                                        const { getMessages } = await import("../../src/composition/chat/chat");
                                                         const messagesResult = await getMessages(currentChat.id);
 
                                                         // ✅ If newest chat is empty → open it instead of alerting

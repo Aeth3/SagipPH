@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   getIsOnline,
   subscribeToNetworkStatus,
-} from "../../infra/network/networkMonitor";
+} from "../../composition/system/networkStatus";
 
 export const useOfflineStatus = () => {
   const [isOnline, setIsOnline] = useState(getIsOnline());

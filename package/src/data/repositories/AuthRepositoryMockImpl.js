@@ -135,4 +135,3 @@ export class AuthRepositoryMockImpl extends AuthRepository {
   }
 }
 
-export const authRepositoryMock = new AuthRepositoryMockImpl();

@@ -232,7 +232,6 @@ export const IMAGES = {
 	colorCircle: require('../assets/images/global/icons/color-circle.png'),
 	sparkle: require('../assets/images/global/icons/sparkle.png'),
 	fuel: require('../assets/images/global/icons/fuel.png'),
-	fuel: require('../assets/images/global/icons/fuel.png'),
 	speedometer: require('../assets/images/global/icons/speedometer.png'),
 	gearbox: require('../assets/images/global/icons/gearbox.png'),
 	//global icons end

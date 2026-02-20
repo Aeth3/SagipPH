@@ -258,4 +258,3 @@ export class AuthRepositoryApiImpl extends AuthRepository {
     }
 }
 
-export const authRepositoryApi = new AuthRepositoryApiImpl();

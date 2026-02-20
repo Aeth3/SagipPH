@@ -22,7 +22,6 @@ import {
     faPlus,
     faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { COLORS, IMAGES } from "package/src/legacyApp";
 import useChatController from "./controllers/ChatController";
 import { useOfflineStatus } from "../../presentation/hooks/useOfflineStatus";
 import { useAlertModal } from "package/src/presentation/hooks/useAlertModal";
@@ -34,6 +33,8 @@ import chatConfig from "./config.json";
 import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
 import DeviceInfo from "react-native-device-info";
 import { findNearestEvacCenter } from "../../../utils/nearestEvac";
+import { COLORS } from "../../theme";
+const APP_LOGO = require("../../../assets/app_logo.png");
 
 const SUGGESTION_CHIPS = chatConfig.SUGGESTION_CHIPS;
 const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
@@ -173,7 +174,7 @@ function MessageBubble({ message }) {
         >
             {!isUser && (
                 <View style={styles.bubbleHeader}>
-                    <Image source={IMAGES.appLogo} style={styles.bubbleImage} />
+                    <Image source={APP_LOGO} style={styles.bubbleImage} />
                     <Text style={styles.bubbleSender}>SagipPH AI</Text>
                 </View>
             )}
@@ -978,7 +979,12 @@ export default function ChatScreen({ route }) {
                 <ScrollView
                     ref={scrollViewRef}
                     style={styles.scrollArea}
-                    contentContainerStyle={[styles.scrollContent, { paddingTop: showDispatchStatus.show ? 20 : 40 }]}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        showDispatchStatus.show
+                            ? styles.scrollContentWithDispatchStatus
+                            : styles.scrollContentDefault,
+                    ]}
                     keyboardShouldPersistTaps="handled"
                 >
                     {!hasMessages && (
@@ -1242,8 +1248,13 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 24,
-        paddingTop: 40,
         paddingBottom: 20,
+    },
+    scrollContentDefault: {
+        paddingTop: 40,
+    },
+    scrollContentWithDispatchStatus: {
+        paddingTop: 20,
     },
 
     greetingSection: {

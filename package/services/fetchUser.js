@@ -1,4 +1,4 @@
-import { getCurrentUser } from "../src/composition/authSession";
+import { getCurrentUser } from "../src/composition/auth/authSession";
 
 export default async function fetchUser() {
   const result = await getCurrentUser();

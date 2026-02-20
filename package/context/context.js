@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { clearSession, getSession } from "../services/storageService";
 import { createTable, dropTable } from '../lib/dbCreator';
 import { insertNewHouseholds, logTableColumns } from '../lib/dbHelper';
-import { IS_DEMO_MODE, getClientToken } from "../src/composition/authSession";
+import { IS_DEMO_MODE, getClientToken } from "../src/composition/auth/authSession";
 
 const GlobalContext = createContext();
 

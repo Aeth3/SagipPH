@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 import Snackbar from "react-native-snackbar";
 import { useOfflineStatus } from "../hooks/useOfflineStatus";
-import { COLORS } from "../../legacyApp";
+
+const SNACKBAR_COLORS = {
+    success: "#10B981",
+    danger: "#DC2626",
+};
 
 /**
  * Headless component that listens to network connectivity changes
@@ -30,13 +34,13 @@ export default function NetworkStatusSnackbar() {
         if (isOnline) {
             Snackbar.show({
                 text: "You are connected online",
-                backgroundColor: COLORS.success,
+                backgroundColor: SNACKBAR_COLORS.success,
                 duration: Snackbar.LENGTH_SHORT,
             });
         } else {
             Snackbar.show({
                 text: "You are offline. You will be directed to offline form submission",
-                backgroundColor: COLORS.danger,
+                backgroundColor: SNACKBAR_COLORS.danger,
                 duration: Snackbar.LENGTH_LONG,
             });
         }
