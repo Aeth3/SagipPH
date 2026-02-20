@@ -6,6 +6,7 @@ import {
   clearSession,
   registerUser,
   loginUser,
+  verifyPhoneNumber,
 } from "../../composition/auth/authSession";
 import { useGlobal } from "../../../context/context";
 
@@ -103,5 +104,21 @@ export const useAuth = () => {
       setLoading(false);
     }
   }
-  return { requestOtp, confirmOtp, logout, register, login };
+
+  const verifyPhone = async (phone) => {
+    try {
+      setLoading(true);
+      const result = await verifyPhoneNumber({ phone });
+      if (!result?.ok) {
+        return { success: false, error: sanitizeError(result?.error?.message, "Phone number verification failed") };
+      }
+      return { success: true, phone: result.value.phone };
+    } catch (error) {
+      return { success: false, error: sanitizeError(error.message, "Phone number verification failed") };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { requestOtp, confirmOtp, logout, register, login, verifyPhone };
 };

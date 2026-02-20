@@ -18,14 +18,20 @@ export const useOtpVerificationController = () => {
     // };
 
     const handleVerify = async (code) => {
-        try {
-            const result = await register({ email: phone, password: code });
+        console.log(code);
 
-            if (!result?.success) {
-                setModalInfo({ show: true, title: 'Error', message: result?.error || 'Registration failed' });
-                return; // stop here, do not login
+        try {
+            const registerResult = await register({ phone, password: code });
+
+            if (!registerResult?.success) {
+                setModalInfo({ show: true, title: 'Error', message: registerResult?.error || 'Registration failed' });
+                return;
             }
-            await login({ email: phone, password: code });
+
+            const loginResult = await login({ email: phone, password: code });
+            if (!loginResult?.success) {
+                setModalInfo({ show: true, title: 'Error', message: loginResult?.error || 'Login failed' });
+            }
         } catch (err) {
             setModalInfo({ show: true, title: 'Error', message: err?.message || 'Something went wrong' });
         }

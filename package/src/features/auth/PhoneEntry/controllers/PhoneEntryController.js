@@ -6,7 +6,7 @@ import { useGlobal } from "../../../../../context/context";
 export const usePhoneEntryController = () => {
     const [phone, setPhone] = useState('+63');
     const [sending, setSending] = useState(false);
-    const { requestOtp, login, register } = useAuth();
+    const { requestOtp, login, register, verifyPhone } = useAuth();
     const { modalInfo, setModalInfo } = useGlobal();
     const navigation = useNavigation();
 
@@ -22,8 +22,15 @@ export const usePhoneEntryController = () => {
     //     setSending(false);
     // };
 
-    const handleSendOtp =  () => {
-            navigation.navigate('OtpVerification', { phone });
+    const handleSendOtp = async () => {
+
+        const result = await verifyPhone(phone);
+        if (!result?.success) {
+            setModalInfo({ show: true, title: 'Error', message: result?.error || 'Failed to verify phone number' });
+            return;
+        }
+        console.log(result.phone);
+        navigation.navigate('OtpVerification', { phone: result.phone });
     };
 
     const handleConfirm = () =>

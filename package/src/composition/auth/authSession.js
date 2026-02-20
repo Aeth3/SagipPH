@@ -19,7 +19,7 @@ import { makeRefreshSession } from "../../domain/usecases/RefreshSession";
 import { makeGetClientToken } from "../../domain/usecases/GetClientToken";
 import { makeRegisterUser } from "../../domain/usecases/RegisterUser";
 import { makeLoginUser } from "../../domain/usecases/LoginUser";
-
+import { makeVerifyPhoneNumber } from "../../domain/usecases/VerifyPhoneNumber";
 export { IS_DEMO_MODE };
 
 export const signInWithPassword = makeSignInWithPassword({ authRepository });
@@ -39,7 +39,7 @@ export const refreshSession = makeRefreshSession({ authRepository, sessionReposi
 export const getClientToken = makeGetClientToken({ authRepository, sessionRepository, name: CLIENT_NAME });
 export const registerUser = makeRegisterUser({ authRepository });
 export const loginUser = makeLoginUser({ authRepository });
-
+export const verifyPhoneNumber = makeVerifyPhoneNumber();
 initAuthHttpBindings({
   getAccessToken,
   refreshSession,
