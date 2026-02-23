@@ -9,6 +9,10 @@ import {
   signOut,
   verifyOtp,
 } from "../../../package/src/composition/authSession";
+import {
+  applyServerOtpCooldown,
+  consumeOtpDeviceAttempt,
+} from "../../../package/src/composition/auth/otpRateLimiter";
 
 jest.mock("../../../package/context/context", () => ({
   useGlobal: jest.fn(),
@@ -16,10 +20,18 @@ jest.mock("../../../package/context/context", () => ({
 
 jest.mock("../../../package/src/composition/authSession", () => ({
   clearSession: jest.fn(),
+  loginUser: jest.fn(),
+  registerUser: jest.fn(),
   saveSession: jest.fn(),
   sendOtp: jest.fn(),
   signOut: jest.fn(),
+  verifyPhoneNumber: jest.fn(),
   verifyOtp: jest.fn(),
+}));
+
+jest.mock("../../../package/src/composition/auth/otpRateLimiter", () => ({
+  applyServerOtpCooldown: jest.fn(),
+  consumeOtpDeviceAttempt: jest.fn(),
 }));
 
 const setupHook = () => {
@@ -45,6 +57,7 @@ describe("useAuth", () => {
     setAuth = jest.fn();
     setLoading = jest.fn();
     useGlobal.mockReturnValue({ setAuth, setLoading });
+    consumeOtpDeviceAttempt.mockResolvedValue({ allowed: true, retryAfterSeconds: null });
   });
 
   describe("requestOtp", () => {
@@ -60,6 +73,23 @@ describe("useAuth", () => {
       expect(sendOtp).toHaveBeenCalledWith({ phone: "+639171234567" });
       expect(result).toEqual({ success: true });
       expect(setLoading).toHaveBeenNthCalledWith(1, true);
+      expect(setLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    it("returns failure when device limit is reached before API call", async () => {
+      consumeOtpDeviceAttempt.mockResolvedValue({ allowed: false, retryAfterSeconds: 120 });
+      const auth = setupHook();
+
+      let result;
+      await act(async () => {
+        result = await auth.requestOtp("+639171234567");
+      });
+
+      expect(sendOtp).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        success: false,
+        error: "Too many OTP requests from this device. Try again in 120s.",
+      });
       expect(setLoading).toHaveBeenLastCalledWith(false);
     });
 
@@ -90,6 +120,25 @@ describe("useAuth", () => {
 
       expect(result).toEqual({ success: false, error: "Network error" });
       expect(setLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    it("applies server cooldown when API returns rate-limit metadata", async () => {
+      const error = new Error("Too many attempts. Please wait before trying again.");
+      error.code = "RATE_LIMITED";
+      error.retryAfter = 90;
+      sendOtp.mockRejectedValue(error);
+      const auth = setupHook();
+
+      let result;
+      await act(async () => {
+        result = await auth.requestOtp("+639171234567");
+      });
+
+      expect(applyServerOtpCooldown).toHaveBeenCalledWith(90);
+      expect(result).toEqual({
+        success: false,
+        error: "Too many attempts. Please wait before trying again.",
+      });
     });
   });
 

@@ -3,12 +3,16 @@ const { width, height } = Dimensions.get('screen');
 
 export const COLORS = {
 	primary: "#FE9063",
-	primary2: "#14b987",
 	primary3: "#337bff",
 	primary4: "#ff50a2",
 	primary5: "#577bff",
 	primary6: "#4053FF",
 	primary7: "#00AB8C",
+
+	// ✅ New Red Primary
+	primaryRed: "#E53935",
+	primaryRedLight: "rgba(229,57,53,.15)",
+
 	yellow: "#FFCD90",
 	secondary: "#704FFE",
 	success: "#54D969",
@@ -34,7 +38,7 @@ export const COLORS = {
 	redLight: "rgba(248,92,111,.2)",
 	themePrimary: "#1630C2",
 	themeSecondary: "#FF74B9",
-}
+};
 
 export const SIZES = {
 	fontLg: 16,

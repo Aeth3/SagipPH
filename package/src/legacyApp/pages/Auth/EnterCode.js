@@ -99,7 +99,7 @@ const EnterCode = ({
                   }}
                   onCodeChanged={setCode}
                   codeInputHighlightStyle={{
-                    borderColor: COLORS.primary2,
+                    borderColor: COLORS.primaryRed,
                   }}
                 />
               </View>
@@ -126,7 +126,7 @@ const EnterCode = ({
               <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 15, marginTop: 5 }}>
                 <Text style={[FONTS.font, { color: COLORS.white, opacity: 0.7 }]}>Did not receive a code?</Text>
                 <TouchableOpacity style={{ marginLeft: 5 }} onPress={handleResend}>
-                  <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: "underline" }]}>Resend</Text>
+                  <Text style={[FONTS.fontLg, { color: COLORS.primaryRed, textDecorationLine: "underline" }]}>Resend</Text>
                 </TouchableOpacity>
               </View>
             </View>

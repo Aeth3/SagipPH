@@ -4,8 +4,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { COLORS } from "package/src/legacyApp";
 
-export default function NotificationIcon({ count = 0, onPress, size = 30, color }) {
-    const iconColor = color || COLORS.primary2;
+export default function NotificationIcon({ count = 0, onPress, size = 25, color }) {
+    const iconColor = color || COLORS.primaryRed;
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.container}>
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 0,
         right: 0,
-        backgroundColor: "#FF3B30",
+        backgroundColor: COLORS.primaryRed,
         minWidth: 18,
         height: 18,
         borderRadius: 9,
@@ -38,10 +38,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 4,
         borderWidth: 1.5,
-        borderColor: "#FFFFFF",
+        borderColor: COLORS.white,
     },
     badgeText: {
-        color: "#FFFFFF",
+        color: COLORS.white,
         fontSize: 10,
         fontWeight: "700",
         lineHeight: 12,

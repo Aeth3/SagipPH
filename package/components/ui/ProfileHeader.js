@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
         padding: 3,
         borderRadius: 48,
         borderWidth: 2,
-        borderColor: COLORS.primary2,
+        borderColor: COLORS.primaryRed,
         marginBottom: 14,
     },
     avatar: {
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 20,
         fontWeight: "700",
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         letterSpacing: 0.2,
     },
     email: {

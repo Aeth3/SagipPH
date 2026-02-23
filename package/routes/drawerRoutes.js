@@ -6,25 +6,13 @@ import LeafletMap from "../components/ui/LeafletMap";
 import { StackNavigator } from "../navigators/AppNavigator";
 import Entry from "@features/auth/Home/Entry";
 import ChatHistoryScreen from "@features/ChatHistory/ChatHistoryScreen";
+import DashboardScreen from "@features/Dashboard/DashboardScreen";
 export const drawerRoutes = [
-    // {
-    //     name: "DashboardDropdown", // parent dropdown
-    //     label: "Dashboard",
-    //     children: [
-    //         {
-    //             name: "HomeScreen",
-    //             label: "Home",
-    //             component: HomeScreen,
-    //             icon: "home", // optional FontAwesome icon name
-    //         },
-    //         {
-    //             name: "MenuScreen",
-    //             label: "Menu",
-    //             component: MenuScreen,
-    //             icon: "list",
-    //         },
-    //     ],
-    // },
+    {
+        name: "DashboardDropdown", // parent dropdown
+        label: "Dashboard",
+       component: DashboardScreen,
+    },
     {
         name: "ChatStack",
         label: "New Chat",
@@ -51,7 +39,7 @@ export const drawerRoutes = [
         //     {
         //         key: "sync",
         //         label: "Sync",
-        //         color: COLORS.primary2
+        //         color: COLORS.primaryRed
         //     },
         //     {
         //         key: "download",
@@ -60,13 +48,6 @@ export const drawerRoutes = [
         //     }
         // ]
     },
-    // {
-    //      name: "LoansScreen",
-    //     label: "Loans",
-    //     component: LoansScreen,
-    //     icon: "loans", // optional FontAwesome icon name
-    //     hasHeader: false,
-    // }
     {
         name: "ChatHistory",
         label: "Chat History",

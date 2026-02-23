@@ -14,7 +14,7 @@ const CustomButton = (props) => {
   return (
     <DropShadow
       style={[{
-        shadowColor: COLORS.primary2,
+        shadowColor: COLORS.primaryRed,
         shadowOffset: {
           width: 5,
           height: 5,
@@ -22,7 +22,7 @@ const CustomButton = (props) => {
         shadowOpacity: props.btnLight ? 0 : props.disabled ? 0 : .3,
         shadowRadius: 5,
       }, Platform.OS === 'ios' && {
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         borderRadius: SIZES.radius,
       }]}
     >
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   button: {
     height: 50,
     borderRadius: SIZES.radius,
-    backgroundColor: COLORS.primary2,
+    backgroundColor: COLORS.primaryRed,
     alignItems: 'center',
     paddingHorizontal: 15,
     justifyContent: 'center',

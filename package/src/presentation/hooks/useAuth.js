@@ -8,6 +8,10 @@ import {
   loginUser,
   verifyPhoneNumber,
 } from "../../composition/authSession";
+import {
+  applyServerOtpCooldown,
+  consumeOtpDeviceAttempt,
+} from "../../composition/auth/otpRateLimiter";
 import { useGlobal } from "../../../context/context";
 
 const sanitizeError = (message, fallback = "Something went wrong") => {
@@ -22,12 +26,25 @@ export const useAuth = () => {
   const requestOtp = async (phone) => {
     try {
       setLoading(true);
+      const rateLimit = await consumeOtpDeviceAttempt();
+      if (!rateLimit.allowed) {
+        const seconds = rateLimit.retryAfterSeconds || 0;
+        const waitLabel = seconds > 0 ? ` Try again in ${seconds}s.` : "";
+        return {
+          success: false,
+          error: `Too many OTP requests from this device.${waitLabel}`.trim(),
+        };
+      }
+
       const result = await sendOtp({ phone });
       if (!result?.ok) {
         return { success: false, error: sanitizeError(result?.error?.message, "Failed to send OTP") };
       }
       return { success: true };
     } catch (error) {
+      if (error?.code === "RATE_LIMITED") {
+        await applyServerOtpCooldown(error?.retryAfter);
+      }
       return { success: false, error: sanitizeError(error.message, "Failed to send OTP") };
     } finally {
       setLoading(false);
@@ -58,13 +75,13 @@ export const useAuth = () => {
       setLoading(true);
       const result = await signOut();
       if (!result?.ok) {
-        throw new Error(result?.error?.message || "Sign out failed");
+        console.warn("Remote logout failed:", result?.error?.message || "Sign out failed");
       }
+    } catch (error) {
+      console.warn("Remote logout failed:", error?.message || "Sign out failed");
+    } finally {
       await clearSession();
       setAuth(null);
-    } catch (error) {
-      console.error("Logout failed:", error.message);
-    } finally {
       setLoading(false);
     }
   };

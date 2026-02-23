@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     optionSelected: {
         backgroundColor: COLORS.primayLight2,
         borderWidth: 1,
-        borderColor: COLORS.primary2,
+        borderColor: COLORS.primaryRed,
     },
     optionText: {
         fontSize: 15,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
         fontFamily: "NunitoSans-Regular",
     },
     optionTextSelected: {
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Bold",
     },
     emptyText: {

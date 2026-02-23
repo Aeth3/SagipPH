@@ -722,24 +722,27 @@ function isValidLocationValue(value) {
 }
 
 function normalizeDispatchContent(content = {}) {
+    const safeContent =
+        content && typeof content === "object" ? content : {};
+
     return {
-        sender: normalizePhoneNumber(content.sender),
-        location: normalizeDispatchText(content.location),
-        street: normalizeDispatchText(content.street),
-        situation: normalizeDispatchText(content.situation),
-        name: normalizeDispatchText(content.name),
-        emergencyType: normalizeDispatchText(content.emergencyType),
-        riskLevel: normalizeDispatchText(content.riskLevel),
-        geoTag: content.geoTag ?? null,
-        otherContactNo: normalizePhoneNumber(content.otherContactNo),
-        pregnant: parseNumber(content.pregnant),
-        senior: parseNumber(content.senior),
-        twoYearsOldBelow: parseNumber(content.twoYearsOldBelow),
-        kids: parseNumber(content.kids),
-        pwd: parseNumber(content.pwd),
-        adult: parseNumber(content.adult),
-        animals: parseNumber(content.animals),
-        total: parseNumber(content.total),
+        sender: normalizePhoneNumber(safeContent.sender),
+        location: normalizeDispatchText(safeContent.location),
+        street: normalizeDispatchText(safeContent.street),
+        situation: normalizeDispatchText(safeContent.situation),
+        name: normalizeDispatchText(safeContent.name),
+        emergencyType: normalizeDispatchText(safeContent.emergencyType),
+        riskLevel: normalizeDispatchText(safeContent.riskLevel),
+        geoTag: safeContent.geoTag ?? null,
+        otherContactNo: normalizePhoneNumber(safeContent.otherContactNo),
+        pregnant: parseNumber(safeContent.pregnant),
+        senior: parseNumber(safeContent.senior),
+        twoYearsOldBelow: parseNumber(safeContent.twoYearsOldBelow),
+        kids: parseNumber(safeContent.kids),
+        pwd: parseNumber(safeContent.pwd),
+        adult: parseNumber(safeContent.adult),
+        animals: parseNumber(safeContent.animals),
+        total: parseNumber(safeContent.total),
     };
 }
 

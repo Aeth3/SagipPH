@@ -29,7 +29,7 @@ export default function DrawerNavigator() {
         headerStyle: {
           backgroundColor: "transparent",
         },
-        headerTintColor: COLORS.primary2,
+        headerTintColor: COLORS.primaryRed,
         headerTitleStyle: {
           fontWeight: "600",
         },

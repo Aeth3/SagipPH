@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     activeIndicator: {
         height: '100%',
         width: '100%',
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         borderRadius: 10,
 
     },

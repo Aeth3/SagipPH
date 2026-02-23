@@ -184,7 +184,7 @@ export const FiltersSheet = ({ filters, filtersState, setFiltersState }) => {
                     onValuesChange={(v) =>
                       setLocalFilters((p) => ({ ...p, [item.key]: v }))
                     }
-                    selectedStyle={{ backgroundColor: COLORS.primary2 }}
+                    selectedStyle={{ backgroundColor: COLORS.primaryRed }}
                     unselectedStyle={{ backgroundColor: "#D7DEEA" }}
                     markerStyle={styles.sliderMarker}
                   />
@@ -284,14 +284,14 @@ const styles = StyleSheet.create({
   },
   rangeValue: {
     ...FONTS.body5,
-    color: COLORS.primary2,
+    color: COLORS.primaryRed,
     fontWeight: "700",
   },
   sliderMarker: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: COLORS.primary2,
+    backgroundColor: COLORS.primaryRed,
     borderWidth: 2,
     borderColor: "#FFFFFF",
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primary2,
+    backgroundColor: COLORS.primaryRed,
   },
   applyButtonText: {
     ...FONTS.h6,

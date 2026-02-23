@@ -7,12 +7,19 @@ import {
     validateVerifyOtpResponse,
     isOtpExpiredError,
     isRateLimitedError,
+    extractRetryAfter,
 } from '../../contracts/api/otpAuth.contract';
 import { generateDateTimeId } from 'package/lib/helpers';
 
 const classifyOtpError = (error) => {
     if (isRateLimitedError(error)) {
-        throw new Error('Too many attempts. Please wait before trying again.');
+        const retryAfter = extractRetryAfter(error);
+        const rateLimitedError = new Error('Too many attempts. Please wait before trying again.');
+        rateLimitedError.code = 'RATE_LIMITED';
+        if (retryAfter) {
+            rateLimitedError.retryAfter = retryAfter;
+        }
+        throw rateLimitedError;
     }
     if (isOtpExpiredError(error)) {
         throw new Error('OTP code has expired. Please request a new code.');
@@ -153,7 +160,21 @@ export class AuthRepositoryApiImpl extends AuthRepository {
     }
 
     async signOut() {
-        await apiClient.post('/api/v1/auth/logout');
+        try {
+            await apiClient.post('/api/v1/auth/logout');
+        } catch (error) {
+            const isUnauthenticated =
+                error?.status === 401 ||
+                String(error?.message || '').toLowerCase().includes('unauthenticated');
+
+            // Logout should be idempotent: if session is already invalid server-side,
+            // treat this as a successful sign-out.
+            if (isUnauthenticated) {
+                return;
+            }
+
+            throw error;
+        }
     }
 
     async getCurrentUser() {

@@ -58,7 +58,7 @@ export const GlobalStyleSheet = {
         height: 20,
         width: 20,
         borderRadius: 10,
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         borderWidth: 1,
         position: 'absolute',
         top: -5,

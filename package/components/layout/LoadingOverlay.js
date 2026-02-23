@@ -119,7 +119,7 @@ export default function LoadingOverlay({ visible, text = "Please wait..." }) {
         >
           <View style={styles.loaderRow}>
             <View style={styles.textGroup}>
-              <ActivityIndicator size="large" color={COLORS.primary2} />
+              <ActivityIndicator size="large" color={COLORS.primaryRed} />
               <Text style={styles.text}>{text}</Text>
             </View>
           </View>
@@ -181,12 +181,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: COLORS.primary2,
+    color: COLORS.primaryRed,
     marginBottom: 4,
   },
   text: {
     fontSize: 14,
-    color: COLORS.primary2,
+    color: COLORS.primaryRed,
     lineHeight: 20,
   },
 })

@@ -127,7 +127,7 @@ const ChangePassword = ({
               <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 15 }}>
                 <Text style={[FONTS.font, { color: COLORS.white, opacity: 0.7 }]}>Remember your password?</Text>
                 <TouchableOpacity style={{ marginLeft: 5 }} onPress={handleSignIn}>
-                  <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: "underline" }]}>Sign in here</Text>
+                  <Text style={[FONTS.fontLg, { color: COLORS.primaryRed, textDecorationLine: "underline" }]}>Sign in here</Text>
                 </TouchableOpacity>
               </View>
             </View>

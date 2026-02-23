@@ -39,7 +39,7 @@ export const normalizePhoneNumber = (input) => {
         return null;
     }
 
-    return digits;
+    // Canonical app format across auth flows is +63XXXXXXXXXX.`r`n    return `"+${digits}`";
 };
 
 export const createPhone = (value) => {

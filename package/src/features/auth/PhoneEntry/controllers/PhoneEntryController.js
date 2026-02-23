@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../../../presentation/hooks/useAuth";
 import { useGlobal } from "../../../../../context/context";
-import { generateSecureOTP } from 'package/utils/generateOTP';
 
 export const usePhoneEntryController = () => {
     const [phone, setPhone] = useState('+63');
     const [sending, setSending] = useState(false);
-    const { requestOtp, login, register, verifyPhone } = useAuth();
+    const { requestOtp, verifyPhone } = useAuth();
     const { modalInfo, setModalInfo } = useGlobal();
     const navigation = useNavigation();
 
@@ -24,24 +23,25 @@ export const usePhoneEntryController = () => {
     // };
 
     const handleSendOtp = async () => {
+        if (sending) return;
+        setSending(true);
+        try {
+            const result = await verifyPhone(phone);
+            if (!result?.success) {
+                setModalInfo({ show: true, title: 'Error', message: result?.error || 'Failed to verify phone number' });
+                return;
+            }
 
-        const result = await verifyPhone(phone);
-        if (!result?.success) {
-            setModalInfo({ show: true, title: 'Error', message: result?.error || 'Failed to verify phone number' });
-            return;
+            const otpResult = await requestOtp(result.phone);
+            if (!otpResult?.success) {
+                setModalInfo({ show: true, title: 'Error', message: otpResult?.error || 'Failed to send OTP' });
+                return;
+            }
+
+            navigation.navigate('OtpVerification', { phone: result.phone });
+        } finally {
+            setSending(false);
         }
-        console.log(result.phone);
-
-        const otp = generateSecureOTP();
-        console.log("otp", otp);
-
-        const registerResult = await register({ phone: result.phone, password: otp });
-        if (!registerResult?.success) {
-            setModalInfo({ show: true, title: 'Error', message: registerResult?.error || 'Registration failed' });
-            return;
-        }
-
-        navigation.navigate('OtpVerification', { phone: result.phone });
     };
 
     const handleConfirm = () =>

@@ -146,13 +146,13 @@ export default function CustomDrawer({ navigation, logout }) {
                                         setExpanded(prev => ({ ...prev, [route.name]: !prev[route.name] }))
                                     }
                                 >
-                                    <Text style={[styles.parentText, isParentActive && [styles.activeText, { color: COLORS.primary2 }]]}>
+                                    <Text style={[styles.parentText, isParentActive && [styles.activeText, { color: COLORS.primaryRed }]]}>
                                         {route.label}
                                     </Text>
                                     <FontAwesomeIcon
                                         icon={expanded[route.name] ? faChevronUp : faChevronDown}
                                         size={14}
-                                        color={isParentActive ? COLORS.primary2 : "#666"}
+                                        color={isParentActive ? COLORS.primaryRed : "#666"}
                                     />
                                 </TouchableOpacity>
                             )}
@@ -221,7 +221,7 @@ export default function CustomDrawer({ navigation, logout }) {
                                                     style={[styles.childItem, isActive && styles.activeChildItem]}
                                                     onPress={() => navigation.navigate(child.name)}
                                                 >
-                                                    <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primary2 }]]}>
+                                                    <Text style={[[styles.childText, { color: COLORS.placeholderColor }], isActive && [styles.activeText, { color: COLORS.primaryRed }]]}>
                                                         {child.label}
                                                     </Text>
                                                 </TouchableOpacity>
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 4,
     },
-    parentText: { fontSize: 16, fontWeight: "600", color: COLORS.primary2 },
+    parentText: { fontSize: 16, fontWeight: "600", color: COLORS.primaryRed },
     childContainer: { paddingLeft: 20, marginTop: 5 },
     childItem: {
         paddingVertical: 10,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     childText: { fontSize: 14, color: "#555", fontWeight: "700" },
     activeItem: { backgroundColor: "#1e90ff33" },
     activeChildItem: { backgroundColor: "#1e90ff22" },
-    activeText: { color: COLORS.primary2, fontWeight: "700" },
+    activeText: { color: COLORS.primaryRed, fontWeight: "700" },
     divider: {
         borderTopWidth: 1,
         borderColor: "#ccc",
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     seeMoreText: {
         fontSize: 13,
         fontWeight: "600",
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
     },
     clearHistoryButton: {
         paddingVertical: 10,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
     },
     modalClose: {
         fontSize: 20,

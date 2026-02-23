@@ -171,7 +171,7 @@ const CreateAccount = ({
                   <Text
                     style={[
                       FONTS.fontLg,
-                      { color: COLORS.primary2, textDecorationLine: 'underline' },
+                      { color: COLORS.primaryRed, textDecorationLine: 'underline' },
                     ]}
                   >
                     Sign in here

@@ -132,7 +132,7 @@ export default function OtpVerificationScreen() {
                                     </Text>
                                 ) : (
                                     <TouchableOpacity onPress={onResend}>
-                                        <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: 'underline' }]}>
+                                        <Text style={[FONTS.fontLg, { color: COLORS.primaryRed, textDecorationLine: 'underline' }]}>
                                             Resend Code
                                         </Text>
                                     </TouchableOpacity>
@@ -142,7 +142,7 @@ export default function OtpVerificationScreen() {
                             {/* Back */}
                             <View style={styles.backRow}>
                                 <TouchableOpacity onPress={handleBack} style={{ marginLeft: 5 }}>
-                                    <Text style={[FONTS.fontLg, { color: COLORS.primary2, textDecorationLine: 'underline' }]}>
+                                    <Text style={[FONTS.fontLg, { color: COLORS.primaryRed, textDecorationLine: 'underline' }]}>
                                         Go Back
                                     </Text>
                                 </TouchableOpacity>

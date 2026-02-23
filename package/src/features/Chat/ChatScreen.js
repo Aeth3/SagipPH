@@ -13,7 +13,7 @@ import {
     Modal,
 } from "react-native";
 import Screen from "../../../components/layout/Screen";
-import ChatHeader from "../../../components/ui/ChatHeader";
+import Header from "../../../components/ui/HeaderV2";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
     faPaperPlane,
@@ -610,9 +610,13 @@ export default function ChatScreen({ route }) {
     } = useChatController();
     const { isOnline } = useOfflineStatus();
     const hasAutoClearedOfflineRef = useRef(false);
+    const lastAutoSentTokenRef = useRef(null);
     const [isDeviceLocationEnabled, setIsDeviceLocationEnabled] = useState(true);
     const newChat = !!route?.params?.newChat;
     const loadChatId = route?.params?.loadChatId;
+    const quickPrompt = route?.params?.quickPrompt;
+    const autoSendQuickPrompt = !!route?.params?.autoSendQuickPrompt;
+    const autoSendToken = route?.params?.autoSendToken;
     const paddingTop = route?.params?.paddingTop;
     const {
         permissionStatus,
@@ -751,16 +755,16 @@ export default function ChatScreen({ route }) {
 
     const barangayError = barangayTouched && !barangay.trim() ? "Barangay is required." : null;
 
-    const showOfflineAlert = () => {
+    const showOfflineAlert = useCallback(() => {
         showAlert(
             "No internet connection",
             "Chat is unavailable while offline.",
             [{ text: "OK" }],
             { type: "info" }
         );
-    };
+    }, [showAlert]);
 
-    const handleChipPress = async (label) => {
+    const handleChipPress = useCallback(async (label) => {
         if (!isOnline) {
             showOfflineAlert();
             return;
@@ -770,7 +774,45 @@ export default function ChatScreen({ route }) {
         if (!allowed) return;
 
         send(label);
-    };
+    }, [isOnline, requireLocationOrAlert, send, showOfflineAlert]);
+
+    useEffect(() => {
+        if (typeof quickPrompt !== "string" || !quickPrompt.trim()) return;
+        setMessage(quickPrompt.trim());
+    }, [quickPrompt]);
+
+    useEffect(() => {
+        const prompt = typeof quickPrompt === "string" ? quickPrompt.trim() : "";
+        if (!prompt || !autoSendQuickPrompt) return;
+
+        const token = autoSendToken ?? prompt;
+        if (lastAutoSentTokenRef.current === token) return;
+        lastAutoSentTokenRef.current = token;
+
+        let cancelled = false;
+        const run = async () => {
+            if (cancelled) return;
+            await handleChipPress(prompt);
+            if (cancelled) return;
+
+            setMessage("");
+            try {
+                navigation?.setParams?.({
+                    quickPrompt: undefined,
+                    autoSendQuickPrompt: undefined,
+                    autoSendToken: undefined,
+                });
+            } catch (_error) {
+                // Ignore when navigation is not yet initialized in tests.
+            }
+        };
+
+        run();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [autoSendQuickPrompt, autoSendToken, handleChipPress, navigation, quickPrompt]);
 
     const handleSend = async () => {
         if (!isOnline) {
@@ -973,7 +1015,7 @@ export default function ChatScreen({ route }) {
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
-                <ChatHeader />
+                <Header mode="chat" />
                 {showDispatchStatus.show && (
                     <TouchableOpacity
                         activeOpacity={0.9}
@@ -1004,7 +1046,7 @@ export default function ChatScreen({ route }) {
                             {isOnline ? (
                                 <>
                                     <View style={styles.greetingSection}>
-                                        <Text style={styles.greetingHi}>Hi AJ</Text>
+                                        <Text style={styles.greetingHi}>Hi John Doe</Text>
                                         <Text style={styles.greetingMain}>Where should{"\n"}we start?</Text>
                                     </View>
 
@@ -1118,6 +1160,7 @@ export default function ChatScreen({ route }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: "#F4F6FA",
     },
     bubbleImage: {
         width: 24,
@@ -1136,21 +1179,21 @@ const styles = StyleSheet.create({
     },
     dispatchStatusBar: {
         backgroundColor: "#EAF7F2",
-        borderColor: COLORS.primary2,
+        borderColor: COLORS.primaryRed,
         borderWidth: 1,
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
     },
     dispatchStatusText: {
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Bold",
         fontSize: 13,
         textAlign: "center",
     },
     dispatchStatusHint: {
         marginTop: 2,
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Regular",
         fontSize: 11,
         textAlign: "center",
@@ -1190,11 +1233,11 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         backgroundColor: "#EAF7F2",
         borderWidth: 1,
-        borderColor: "#B7E7D2",
+        borderColor: COLORS.primaryRed,
     },
     dispatchModalBadgeText: {
         fontSize: 11,
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Bold",
         letterSpacing: 0.6,
     },
@@ -1247,7 +1290,7 @@ const styles = StyleSheet.create({
     dispatchModalCloseButton: {
         marginTop: 14,
         width: "100%",
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         borderRadius: 12,
         paddingVertical: 11,
         alignItems: "center",
@@ -1274,7 +1317,7 @@ const styles = StyleSheet.create({
     },
     greetingHi: {
         fontSize: 16,
-        color: COLORS.text,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Regular",
         marginBottom: 4,
     },
@@ -1286,7 +1329,6 @@ const styles = StyleSheet.create({
     },
 
     chipsContainer: {
-
         gap: 12,
     },
     chipTouchable: {
@@ -1295,7 +1337,7 @@ const styles = StyleSheet.create({
     chip: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F3F4F6",
+        backgroundColor: COLORS.primaryRedLight,
         paddingHorizontal: 18,
         paddingVertical: 14,
         borderRadius: 28,
@@ -1370,7 +1412,7 @@ const styles = StyleSheet.create({
     },
     altContactWrap: {
         borderWidth: 1,
-        borderColor: COLORS.primary2,
+        borderColor: COLORS.primaryRed,
         borderRadius: 28,
         paddingHorizontal: 18,
         minHeight: 48,
@@ -1406,12 +1448,12 @@ const styles = StyleSheet.create({
     addContactLabel: {
         flex: 0,
         fontSize: 15,
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         fontFamily: "NunitoSans-Bold",
     },
     altPrefix: {
         fontSize: 20,
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         lineHeight: 24,
         marginRight: 8,
         fontFamily: "NunitoSans-Bold",
@@ -1525,7 +1567,7 @@ const styles = StyleSheet.create({
     },
     bubbleUser: {
         alignSelf: "flex-end",
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         borderBottomRightRadius: 6,
     },
     bubbleAssistant: {
@@ -1539,7 +1581,7 @@ const styles = StyleSheet.create({
     bubbleSender: {
         fontSize: 11,
         fontFamily: "Poppins-SemiBold",
-        color: COLORS.primary2,
+        color: COLORS.primaryRed,
         marginBottom: 4,
     },
     bubbleText: {
@@ -1582,7 +1624,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
         opacity: 0.7,
     },
     typingText: {
@@ -1596,14 +1638,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: Platform.OS === "ios" ? 24 : 16,
         paddingTop: 8,
-        borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: COLORS.borderColor,
-        backgroundColor: COLORS.white,
+        backgroundColor: "#F4F6FA",
     },
     inputContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F3F4F6",
+        backgroundColor: "#fff",
         borderRadius: 28,
         paddingHorizontal: 6,
         paddingVertical: 4,
@@ -1652,7 +1693,7 @@ const styles = StyleSheet.create({
         borderRadius: 19,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: COLORS.primary2,
+        backgroundColor: COLORS.primaryRed,
     },
     sendButtonDisabled: {
         backgroundColor: "#D1D5DB",

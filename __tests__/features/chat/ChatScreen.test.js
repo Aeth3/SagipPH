@@ -45,7 +45,7 @@ jest.mock("package/src/legacyApp", () => ({
     placeholderColor: "#999",
     text: "#222",
     title: "#111",
-    primary2: "#3b82f6",
+    primaryRed: "#3b82f6",
     borderColor: "#ddd",
     redLight: "#fee2e2",
     themePrimary: "#1d4ed8",
