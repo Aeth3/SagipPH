@@ -6,7 +6,7 @@
 /**
  * Send OTP request payload
  * @typedef {Object} SendOtpRequest
- * @property {string} phone - PH phone number in +63XXXXXXXXXX format
+ * @property {string} phone - PH phone number in 63XXXXXXXXXX format
  */
 
 /**
@@ -20,7 +20,7 @@
 /**
  * Verify OTP request payload
  * @typedef {Object} VerifyOtpRequest
- * @property {string} phone - PH phone number in +63XXXXXXXXXX format
+ * @property {string} phone - PH phone number in 63XXXXXXXXXX format
  * @property {string} code - 6-digit OTP code
  */
 

@@ -16,7 +16,8 @@ export const normalizePhoneNumber = (input) => {
     if (!input) return null;
 
     // Remove non-digits
-    let digits = input.replace(/\D/g, '');
+    const raw = typeof input === 'string' ? input.trim() : String(input);
+    let digits = raw.replace(/\D/g, '');
 
     // Basic length guard
     if (digits.length < 10 || digits.length > 12) return null;
@@ -39,23 +40,18 @@ export const normalizePhoneNumber = (input) => {
         return null;
     }
 
-    // Canonical app format across auth flows is +63XXXXXXXXXX.`r`n    return `"+${digits}`";
+    // Canonical app format across auth flows is 63XXXXXXXXXX.
+    return digits;
 };
 
 export const createPhone = (value) => {
-    const raw = typeof value === "string" ? value.trim() : "";
-    if (!raw) throw new Error("Phone number is required");
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) throw new Error('Phone number is required');
 
-    // Strict canonical format for auth use-cases.
-    if (!/^\+63\d{10}$/.test(raw)) {
-        throw new Error("Invalid PH phone number. Use +63XXXXXXXXXX");
+    const normalized = normalizePhoneNumber(raw);
+    if (!normalized) {
+        throw new Error('Invalid PH phone number. Use 63XXXXXXXXXX');
     }
 
-    const digits = raw.slice(1); // strip leading "+"
-    const prefix = digits.slice(2, 5);
-    if (!VALID_PREFIXES.has(prefix)) {
-        throw new Error("Invalid PH phone number. Use +63XXXXXXXXXX");
-    }
-
-    return raw;
+    return normalized;
 };
