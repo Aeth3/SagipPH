@@ -157,9 +157,10 @@ export const useDashboardController = () => {
     }, [navigateToChatPrompt]);
 
     const handleFindNearestShelter = useCallback(() => {
-        if (blockOffline()) return;
-        navigateToChatPrompt("Find nearest shelter", { autoSend: true });
-    }, [blockOffline, navigateToChatPrompt]);
+        navigation.navigate("ChatStack", {
+            screen: "NearestCenter",
+        });
+    }, [navigation]);
 
     const handlePreparednessTips = useCallback(() => {
         if (blockOffline()) return;

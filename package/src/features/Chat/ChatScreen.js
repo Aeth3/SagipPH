@@ -45,29 +45,7 @@ const RISK_LEVELS = chatConfig.RISK_LEVELS.map(risk => ({
 }));
 const PEOPLE_GROUPS = chatConfig.PEOPLE_GROUPS;
 const BARANGAY_OPTIONS = chatConfig.BARANGAY_OPTIONS;
-const SAMPLE_EVAC_CENTERS = [
-    {
-        id: "evac-1",
-        name: "Butuan City Sports Complex",
-        lat: 8.951802,
-        lng: 125.538029,
-        address: "J.C. Aquino Avenue, Butuan City",
-    },
-    {
-        id: "evac-2",
-        name: "Ampayon Covered Court",
-        lat: 8.973663,
-        lng: 125.56607,
-        address: "Brgy. Ampayon, Butuan City",
-    },
-    {
-        id: "evac-3",
-        name: "Bancasi Gymnasium",
-        lat: 8.961929,
-        lng: 125.487015,
-        address: "Brgy. Bancasi, Butuan City",
-    },
-];
+const SAMPLE_EVAC_CENTERS = chatConfig.SAMPLE_EVAC_CENTERS;
 
 const normalizeContactInput = (value) => {
     let digits = (value ?? "").replace(/\D/g, "");
@@ -1179,7 +1157,7 @@ const styles = StyleSheet.create({
     },
     dispatchStatusBar: {
         backgroundColor: "#EAF7F2",
-        borderColor: COLORS.primaryRed,
+        borderColor: COLORS.success,
         borderWidth: 1,
         borderRadius: 10,
         paddingHorizontal: 12,
@@ -1233,7 +1211,7 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         backgroundColor: "#EAF7F2",
         borderWidth: 1,
-        borderColor: COLORS.primaryRed,
+        borderColor: COLORS.success,
     },
     dispatchModalBadgeText: {
         fontSize: 11,

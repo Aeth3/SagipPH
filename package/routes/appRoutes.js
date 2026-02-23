@@ -9,9 +9,17 @@ export const appRoutes = [
     },
     {
         name: "Map",
-        getComponent: () => require("../components/ui/LeafletMap").default,
+        getComponent: () => require("@features/Map/MapScreen").default,
         options: {
             title: "Map",
+            headerShown: false,
+        },
+    },
+    {
+        name: "NearestCenter",
+        getComponent: () => require("@features/NearestCenter/NearestCenterScreen").default,
+        options: {
+            title: "Nearest Center",
             headerShown: false,
         },
     },

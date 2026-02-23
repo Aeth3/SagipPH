@@ -23,12 +23,12 @@ const HEADER_MODE_CONFIG = {
 
 export default function Header({
     mode = "default",
-    notificationCount = 0,
-    onNotificationPress,
     showNotification,
     showAvatar,
     avatarText,
 }) {
+    const notificationCount = 0;
+    const onNotificationPress = () => { };
     const modeConfig = HEADER_MODE_CONFIG[mode] ?? HEADER_MODE_CONFIG.default;
     const shouldShowNotification = showNotification ?? modeConfig.showNotification;
     const shouldShowAvatar = showAvatar ?? modeConfig.showAvatar;

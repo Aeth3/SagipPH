@@ -22,6 +22,44 @@ const sanitizeError = (message, fallback = "Something went wrong") => {
 
 export const useAuth = () => {
   const { setAuth, setLoading } = useGlobal();
+  const normalizePersistedSession = (payload) => {
+    const source =
+      payload?.data && typeof payload.data === "object" ? payload.data : payload;
+
+    if (!source || typeof source !== "object") return null;
+
+    const user =
+      source.user && typeof source.user === "object"
+        ? source.user
+        : source.data?.user && typeof source.data.user === "object"
+          ? source.data.user
+          : null;
+
+    const accessToken =
+      source.access_token ??
+      source.accessToken ??
+      source.token ??
+      source.data?.access_token ??
+      source.data?.accessToken ??
+      source.data?.token ??
+      null;
+
+    const refreshToken =
+      source.refresh_token ??
+      source.refreshToken ??
+      source.data?.refresh_token ??
+      source.data?.refreshToken ??
+      null;
+
+    if (!user || !accessToken) return null;
+
+    return {
+      ...source,
+      user,
+      access_token: accessToken,
+      refresh_token: refreshToken ?? undefined,
+    };
+  };
 
   const requestOtp = async (phone) => {
     try {
@@ -111,10 +149,14 @@ export const useAuth = () => {
       if (!result?.ok) {
         return { success: false, error: sanitizeError(result?.error?.message, "Login failed") };
       }
-      const { data } = result.value;
-      await saveSession(data);
-      setAuth(data.user);
-      return { success: true, user: data.user };
+      const normalizedSession = normalizePersistedSession(result.value);
+      if (!normalizedSession) {
+        return { success: false, error: "Login response is missing session data" };
+      }
+
+      await saveSession(normalizedSession);
+      setAuth(normalizedSession.user);
+      return { success: true, user: normalizedSession.user };
     } catch (error) {
       return { success: false, error: sanitizeError(error.message, "Login failed") };
     } finally {

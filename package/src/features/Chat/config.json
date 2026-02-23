@@ -84,5 +84,107 @@
         "San Roque",
         "Santa Cruz",
         "Mabini"
+    ],
+    "SAMPLE_EVAC_CENTERS": [
+        {
+            "id": "evac-1",
+            "name": "Butuan City Sports Complex",
+            "lat": 8.951802,
+            "lng": 125.538029,
+            "address": "J.C. Aquino Avenue, Butuan City",
+            "max_capacity": 2000,
+            "current_occupancy": 1350,
+            "status": "Open"
+        },
+        {
+            "id": "evac-2",
+            "name": "Ampayon Covered Court",
+            "lat": 8.973663,
+            "lng": 125.56607,
+            "address": "Brgy. Ampayon, Butuan City",
+            "max_capacity": 800,
+            "current_occupancy": 800,
+            "status": "Full"
+        },
+        {
+            "id": "evac-3",
+            "name": "Bancasi Gymnasium",
+            "lat": 8.961929,
+            "lng": 125.487015,
+            "address": "Brgy. Bancasi, Butuan City",
+            "max_capacity": 1200,
+            "current_occupancy": 0,
+            "status": "Under Maintenance"
+        },
+        {
+            "id": "evac-4",
+            "name": "Libertad Sports Complex",
+            "lat": 8.944921,
+            "lng": 125.543827,
+            "address": "Brgy. Libertad, Butuan City",
+            "max_capacity": 1500,
+            "current_occupancy": 920,
+            "status": "Open"
+        },
+        {
+            "id": "evac-5",
+            "name": "Golden Ribbon Gymnasium",
+            "lat": 8.959112,
+            "lng": 125.531244,
+            "address": "J.C. Aquino Avenue, Butuan City",
+            "max_capacity": 600,
+            "current_occupancy": 600,
+            "status": "Full"
+        },
+        {
+            "id": "evac-6",
+            "name": "Doongan Covered Court",
+            "lat": 8.930715,
+            "lng": 125.566981,
+            "address": "Brgy. Doongan, Butuan City",
+            "max_capacity": 500,
+            "current_occupancy": 210,
+            "status": "Open"
+        },
+        {
+            "id": "evac-7",
+            "name": "Villa Kananga Multi-Purpose Hall",
+            "lat": 8.973215,
+            "lng": 125.522413,
+            "address": "Brgy. Villa Kananga, Butuan City",
+            "max_capacity": 900,
+            "current_occupancy": 450,
+            "status": "Open"
+        },
+        {
+            "id": "evac-8",
+            "name": "Obrero Covered Court",
+            "lat": 8.952338,
+            "lng": 125.548672,
+            "address": "Brgy. Obrero, Butuan City",
+            "max_capacity": 700,
+            "current_occupancy": 700,
+            "status": "Full"
+        },
+        {
+            "id": "evac-9",
+            "name": "Baan Covered Court",
+            "lat": 8.986421,
+            "lng": 125.570118,
+            "address": "Brgy. Baan, Butuan City",
+            "max_capacity": 1000,
+            "current_occupancy": 630,
+            "status": "Open"
+        },
+        {
+            "id": "evac-10",
+            "name": "Taguibo Gymnasium",
+            "lat": 8.919774,
+            "lng": 125.553912,
+            "address": "Brgy. Taguibo, Butuan City",
+            "max_capacity": 750,
+            "current_occupancy": 0,
+            "status": "Under Maintenance"
+        }
     ]
 }

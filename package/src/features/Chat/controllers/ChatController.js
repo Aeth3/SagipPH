@@ -22,6 +22,35 @@ import {
 } from "package/lib/helpers";
 import { getCurrentLocation } from "../../../composition/system/location";
 import useLiveLocation from "package/src/presentation/hooks/useLiveLocation";
+
+const CHAT_RESPONSE_TIMEOUT_MS = 25000;
+
+class ChatResponseTimeoutError extends Error {
+    constructor(timeoutMs) {
+        super(`Chat response timed out after ${timeoutMs}ms`);
+        this.name = "ChatResponseTimeoutError";
+        this.code = "CHAT_RESPONSE_TIMEOUT";
+    }
+}
+
+function withTimeout(promise, timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(
+            () => reject(new ChatResponseTimeoutError(timeoutMs)),
+            timeoutMs
+        );
+
+        promise
+            .then((value) => {
+                clearTimeout(timeoutId);
+                resolve(value);
+            })
+            .catch((error) => {
+                clearTimeout(timeoutId);
+                reject(error);
+            });
+    });
+}
 /**
  * ChatController - manages conversation state, AI communication,
  * and SQLite persistence via the composition layer.
@@ -150,7 +179,10 @@ export default function useChatController() {
 
             try {
                 const currentMessages = messagesRef.current;
-                const reply = await sendChatPrompt(trimmed);
+                const reply = await withTimeout(
+                    sendChatPrompt(trimmed),
+                    CHAT_RESPONSE_TIMEOUT_MS
+                );
                 const extractionContext = [...currentMessages, userMsg, { role: "assistant", text: reply }];
                 const extracted = await extractDispatchState(extractionContext);
                 const extractedValidation = validateDispatchContent(extracted?.content);
@@ -250,11 +282,14 @@ export default function useChatController() {
                     }
                 }
             } catch (error) {
+                const isTimeout = error?.code === "CHAT_RESPONSE_TIMEOUT";
                 const isQuota =
                     error?.message?.includes("429") ||
                     error?.message?.includes("quota");
 
-                const errorText = isQuota
+                const errorText = isTimeout
+                    ? "I'm taking too long to respond. Please try again."
+                    : isQuota
                     ? "I'm temporarily unavailable due to high demand. Please wait a moment and try again."
                     : "Sorry, I couldn't process that right now. Please try again.";
 

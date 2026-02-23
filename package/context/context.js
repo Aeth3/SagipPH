@@ -45,6 +45,8 @@ export const ContextProvider = ({ children }) => {
       // dropTable('tbl_loans');
       // dropTable('tbl_chats');
       // dropTable('tbl_messages');
+      // dropTable('tbl_barangays');
+      // dropTable('tbl_evacs');
 
       // CREATE TABLE
       await createTable(
@@ -90,10 +92,36 @@ export const ContextProvider = ({ children }) => {
         `
       );
 
+      await createTable(
+        'tbl_barangays',
+        `
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        barangay_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+        `
+      );
+
+      await createTable(
+        'tbl_evacs',
+        `
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        evac_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        geotag TEXT NOT NULL,
+        address TEXT NOT NULL,
+        timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+        `
+      );
+
       // LOG table columns
       logTableColumns('tbl_loans')
       logTableColumns('tbl_chats')
       logTableColumns('tbl_messages')
+      logTableColumns('tbl_barangays')
+      logTableColumns('tbl_evacs')
 
       setIsDbReady(true);
       console.log("Database initialized.");
@@ -107,9 +135,19 @@ export const ContextProvider = ({ children }) => {
     try {
       const session = await getSession();
       console.log("Session restored:", session);
+      const normalizedSession =
+        session?.data && typeof session.data === "object"
+          ? session.data
+          : session;
+
+      const restoredUser =
+        normalizedSession?.user ??
+        normalizedSession?.data?.user ??
+        null;
+
       const hasDemoToken =
-        typeof session?.access_token === "string" &&
-        session.access_token.startsWith("demo_access_");
+        typeof normalizedSession?.access_token === "string" &&
+        normalizedSession.access_token.startsWith("demo_access_");
 
       if (!IS_DEMO_MODE && hasDemoToken) {
         await clearSession();
@@ -117,8 +155,8 @@ export const ContextProvider = ({ children }) => {
         return;
       }
 
-      if (session?.user) {
-        setAuth(session.user);
+      if (restoredUser) {
+        setAuth(restoredUser);
       } else {
         setAuth(null);
       }
