@@ -13,4 +13,6 @@ export const generateChatTitleFromContext = (messages) =>
   generateGeminiChatTitleFromContext(messages);
 
 export const extractDispatchState = (messages) =>
-  extractDispatchStateFromGemini(messages);
+  typeof extractDispatchStateFromGemini === "function"
+    ? extractDispatchStateFromGemini(messages)
+    : Promise.resolve({ ready: false, content: {} });

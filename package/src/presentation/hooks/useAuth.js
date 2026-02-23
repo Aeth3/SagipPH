@@ -7,7 +7,7 @@ import {
   registerUser,
   loginUser,
   verifyPhoneNumber,
-} from "../../composition/auth/authSession";
+} from "../../composition/authSession";
 import { useGlobal } from "../../../context/context";
 
 const sanitizeError = (message, fallback = "Something went wrong") => {
@@ -56,7 +56,7 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       setLoading(true);
-      const result = await clearSession();
+      const result = await signOut();
       if (!result?.ok) {
         throw new Error(result?.error?.message || "Sign out failed");
       }

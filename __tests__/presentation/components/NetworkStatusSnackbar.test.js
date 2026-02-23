@@ -22,10 +22,6 @@ jest.mock("../../../package/src/presentation/hooks/useOfflineStatus", () => {
     };
 });
 
-jest.mock("../../../package/src/legacyApp", () => ({
-    COLORS: { success: "#54D969", danger: "#ff4a5c" },
-}));
-
 const {
     __setIsOnline,
 } = require("../../../package/src/presentation/hooks/useOfflineStatus");
@@ -77,7 +73,7 @@ describe("NetworkStatusSnackbar", () => {
         expect(mockSnackbarShow).toHaveBeenCalledWith(
             expect.objectContaining({
                 text: expect.stringContaining("offline"),
-                backgroundColor: "#ff4a5c",
+                backgroundColor: "#DC2626",
             })
         );
     });
@@ -96,7 +92,7 @@ describe("NetworkStatusSnackbar", () => {
         expect(mockSnackbarShow).toHaveBeenCalledWith(
             expect.objectContaining({
                 text: expect.stringContaining("You are connected online"),
-                backgroundColor: "#54D969",
+                backgroundColor: "#10B981",
             })
         );
     });

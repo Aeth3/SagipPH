@@ -42,15 +42,20 @@ export const normalizePhoneNumber = (input) => {
     return digits;
 };
 
-const PH_PHONE_REGEX = /^63\d{10}$/;
-
 export const createPhone = (value) => {
-    const normalized = normalizePhoneNumber(value);
+    const raw = typeof value === "string" ? value.trim() : "";
+    if (!raw) throw new Error("Phone number is required");
 
-    if (!normalized) throw new Error('Phone number is required');
-    if (!PH_PHONE_REGEX.test(normalized)) {
-        throw new Error('Invalid PH phone number. Use 63XXXXXXXXXX');
+    // Strict canonical format for auth use-cases.
+    if (!/^\+63\d{10}$/.test(raw)) {
+        throw new Error("Invalid PH phone number. Use +63XXXXXXXXXX");
     }
 
-    return normalized;
+    const digits = raw.slice(1); // strip leading "+"
+    const prefix = digits.slice(2, 5);
+    if (!VALID_PREFIXES.has(prefix)) {
+        throw new Error("Invalid PH phone number. Use +63XXXXXXXXXX");
+    }
+
+    return raw;
 };

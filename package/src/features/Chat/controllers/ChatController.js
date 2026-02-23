@@ -12,7 +12,7 @@ import {
     updateChat,
     getMessages as fetchMessages,
     sendMessage as persistMessage,
-} from "../../../composition/chat/chat";
+} from "../../../composition/chat";
 import { getSession } from "../../../composition/auth/authSession";
 import { MESSAGE_SENDERS } from "../../../domain/entities/Message";
 import {
@@ -77,7 +77,9 @@ export default function useChatController() {
                     activeChat = chatsResult.value[0];
                 } else {
                     // First launch - create a default chat
-                    const createResult = await createChat({ title: "SagipPH Chat", userId });
+                    const createResult = await createChat(
+                        userId ? { title: "SagipPH Chat", userId } : { title: "SagipPH Chat" }
+                    );
                     if (createResult.ok) activeChat = createResult.value;
                 }
 
@@ -312,7 +314,9 @@ export default function useChatController() {
         setDispatchGeotag(null);
 
         // Keep previous chats for history; just create and switch to a fresh one.
-        const createResult = await createChat({ title: "SagipPH Chat", userId: currentUserId });
+        const createResult = await createChat(
+            currentUserId ? { title: "SagipPH Chat", userId: currentUserId } : { title: "SagipPH Chat" }
+        );
         if (createResult.ok) {
             setChatId(createResult.value.id);
         }

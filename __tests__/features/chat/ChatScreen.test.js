@@ -18,6 +18,8 @@ jest.mock("../../../package/src/features/Chat/controllers/ChatController", () =>
     clearChat: mockClearChat,
     loadChat: mockLoadChat,
     scrollViewRef: { current: null },
+    showDispatchStatus: { show: false, details: null },
+    dispatchGeotag: null,
   }),
 }));
 
@@ -130,6 +132,15 @@ describe("ChatScreen", () => {
       );
     });
     expect(mockClearChat).toHaveBeenCalled();
+    expect(mockLoadChat).not.toHaveBeenCalled();
+
+    await act(async () => {
+      tree.update(
+        <NavigationContainer>
+          <ChatScreen route={{ params: { loadChatId: "chat-123" } }} />
+        </NavigationContainer>
+      );
+    });
     expect(mockLoadChat).toHaveBeenCalledWith("chat-123");
   });
 });

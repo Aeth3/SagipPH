@@ -34,6 +34,12 @@ jest.mock("../../../package/src/domain/entities/Message", () => ({
     MESSAGE_SENDERS: { USER: "user", BOT: "bot", SYSTEM: "system" },
 }));
 
+jest.mock("package/lib/helpers", () => ({
+    buildConfirmedDispatchBlock: jest.fn(() => "CONFIRMED_DISPATCH"),
+    parseDispatchFromReply: jest.fn(() => null),
+    validateDispatchContent: jest.fn(() => ({ ready: false, content: {} })),
+}));
+
 /* ── Harness ───────────────────────────────────────────── */
 
 const setupHook = async (overrides = {}) => {

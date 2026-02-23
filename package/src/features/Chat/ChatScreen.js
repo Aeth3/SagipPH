@@ -684,9 +684,17 @@ export default function ChatScreen({ route }) {
     }, [isLocationServiceEnabled]);
 
     useEffect(() => {
+        const safeSetParams = (params) => {
+            try {
+                navigation?.setParams?.(params);
+            } catch (_error) {
+                // Ignore when navigation is not yet initialized in tests.
+            }
+        };
+
         if (newChat) {
             clearChat();
-            navigation.setParams({ loadChatId: undefined });
+            safeSetParams({ loadChatId: undefined });
         }
     }, [clearChat, navigation, newChat]);
 
@@ -698,7 +706,11 @@ export default function ChatScreen({ route }) {
             if (!isOnline) {
                 // If offline and trying to load a chat from history, reset to new chat and show alert
                 clearChat();
-                navigation.setParams({ loadChatId: undefined, newChat: true });
+                try {
+                    navigation?.setParams?.({ loadChatId: undefined, newChat: true });
+                } catch (_error) {
+                    // Ignore when navigation is not yet initialized in tests.
+                }
                 showAlert(
                     "Offline mode",
                     "You are offline. Cannot load chat history. Starting a new chat instead.",

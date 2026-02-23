@@ -2,7 +2,7 @@ import {
   signInWithPassword,
   signOut as signOutUsecase,
   signUp as signUpUsecase,
-} from "../src/composition/auth/authSession";
+} from "../src/composition/authSession";
 
 export const signin = async (formData) => {
   try {

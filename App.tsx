@@ -17,7 +17,11 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView
+        style={styles.container}
+        edges={["top"]}
+        accessibilityLabel="SagipPH application"
+      >
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <Main />
       </SafeAreaView>

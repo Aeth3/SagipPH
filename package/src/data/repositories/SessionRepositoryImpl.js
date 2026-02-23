@@ -24,7 +24,11 @@ export class SessionRepositoryImpl extends SessionRepository {
     const session = await this.getSession();
     if (!session) return null;
 
-    const access = session.token ?? session.token ?? null;
+    const access =
+      session.access_token ??
+      session.accessToken ??
+      session.token ??
+      null;
     if (!access) return null;
 
     if (typeof access === "string") return access;

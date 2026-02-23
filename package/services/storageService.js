@@ -3,7 +3,7 @@ import {
   getAccessToken,
   getSession as getSessionUseCase,
   saveSession as saveSessionUseCase,
-} from "../src/composition/auth/authSession";
+} from "../src/composition/authSession";
 
 export const saveSession = async (session) => {
   try {

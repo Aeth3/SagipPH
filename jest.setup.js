@@ -131,3 +131,17 @@ jest.mock('@twotalltotems/react-native-otp-input', () => {
     return React.createElement(View, props);
   };
 });
+
+jest.mock("react-native-device-info", () => ({
+  getUniqueId: jest.fn(async () => "test-device-id"),
+  getSystemVersion: jest.fn(() => "test-os-version"),
+  getVersion: jest.fn(() => "test-app-version"),
+  isLocationEnabled: jest.fn(async () => true),
+  isEmulator: jest.fn(async () => true),
+  hasGms: jest.fn(async () => true),
+}));
+
+jest.mock("@react-native-community/netinfo", () => ({
+  addEventListener: jest.fn(() => jest.fn()),
+  fetch: jest.fn(async () => ({ isConnected: true, isInternetReachable: true })),
+}));
