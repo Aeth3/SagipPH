@@ -90,7 +90,7 @@ export default function OtpVerificationScreen() {
                                     Verify Your Number
                                 </Text>
                                 <Text style={[FONTS.font, { textAlign: 'center', color: COLORS.white, opacity: 0.7 }]}>
-                                    Enter the 6-digit code sent to {phone}
+                                    Enter the 6-digit code sent to +{phone}
                                 </Text>
                             </View>
 

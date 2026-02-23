@@ -4,7 +4,7 @@
  *
  * @format
  */
-
+import 'react-native-get-random-values';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import {
   SafeAreaProvider,

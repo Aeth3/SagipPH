@@ -21,13 +21,6 @@ export const useOtpVerificationController = () => {
         console.log(code);
 
         try {
-            const registerResult = await register({ phone, password: code });
-
-            if (!registerResult?.success) {
-                setModalInfo({ show: true, title: 'Error', message: registerResult?.error || 'Registration failed' });
-                return;
-            }
-
             const loginResult = await login({ email: phone, password: code });
             if (!loginResult?.success) {
                 setModalInfo({ show: true, title: 'Error', message: loginResult?.error || 'Login failed' });

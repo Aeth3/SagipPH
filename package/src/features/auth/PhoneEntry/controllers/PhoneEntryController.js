@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../../../presentation/hooks/useAuth";
 import { useGlobal } from "../../../../../context/context";
+import { generateSecureOTP } from 'package/utils/generateOTP';
 
 export const usePhoneEntryController = () => {
     const [phone, setPhone] = useState('+63');
@@ -30,6 +31,16 @@ export const usePhoneEntryController = () => {
             return;
         }
         console.log(result.phone);
+
+        const otp = generateSecureOTP();
+        console.log("otp", otp);
+
+        const registerResult = await register({ phone: result.phone, password: otp });
+        if (!registerResult?.success) {
+            setModalInfo({ show: true, title: 'Error', message: registerResult?.error || 'Registration failed' });
+            return;
+        }
+
         navigation.navigate('OtpVerification', { phone: result.phone });
     };
 

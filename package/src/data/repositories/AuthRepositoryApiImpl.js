@@ -116,7 +116,7 @@ export class AuthRepositoryApiImpl extends AuthRepository {
     async verifyOtp({ phone, code }) {
         let response;
         try {
-            response = await apiClient.post('/api/v1/auth/otp/verify', { phone, code });
+            response = await apiClient.post('/api/v1/auth/verify', { phone, code });
         } catch (error) {
             classifyOtpError(error);
         }
