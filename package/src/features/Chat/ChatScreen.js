@@ -866,7 +866,7 @@ export default function ChatScreen({ route }) {
         SendSMS.send(
             {
                 body: smsBody,
-                recipients: validContacts,
+                recipients: ['911'],
                 successTypes: ["sent", "queued"],
                 allowAndroidSendWithoutReadPermission: true,
             },
